@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>地方口袋｜项目经营台</title>
+  <link rel="stylesheet" href="client-preview.css">
+</head>
+<body data-view="q1">
+  <div class="review-mode-badge" role="status">外部评审只读版 · 交互不保存</div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./" aria-label="地方口袋项目经营台">
+        <span class="brand-mark">地方<br>口袋</span>
+        <span class="brand-name"><strong>RURBAN OS</strong><small>项目经营台</small></span>
+      </a>
+
+      <button class="project-switcher" type="button" title="切换项目">
+        <span>当前项目</span>
+        <strong id="sideProject">地方口袋美食食集</strong>
+        <small><i></i><b id="sideMonth">2026年8月</b><em>⌄</em></small>
+      </button>
+
+      <nav class="question-nav" id="roleNavigation" aria-label="老板经营栏目">
+        <span class="nav-label">老板经营视图</span>
+        <button class="question-link active" type="button" data-question="q1">
+          <b>01</b><span><strong>项目经营总览</strong><small>阶段、重点与风险</small></span>
+        </button>
+        <button class="question-link" type="button" data-question="q5">
+          <b>02</b><span><strong>月度战役与审批</strong><small>Brief、预算与优先级</small></span>
+        </button>
+        <button class="question-link" type="button" data-question="q6">
+          <b>03</b><span><strong>执行与协同进展</strong><small>运营、商户与招商</small></span>
+        </button>
+        <button class="question-link" type="button" data-question="q4">
+          <b>04</b><span><strong>经营价值与趋势</strong><small>指标、证据与归因</small></span>
+        </button>
+        <button class="question-link" type="button" data-question="q7">
+          <b>05</b><span><strong>下月决策与月报</strong><small>建议、审批与导出</small></span>
+        </button>
+      </nav>
+
+      <div class="sidebar-actions">
+        <button class="button sidebar-primary" type="button" data-open-wizard>＋ 生成本月方案</button>
+        <button class="text-action" type="button" id="openFeedback">提交意见</button>
+      </div>
+
+      <footer>
+        <span>数据状态</span>
+        <strong><i></i>部分待补充</strong>
+      </footer>
+    </aside>
+
+    <main class="main">
+      <div class="announcement-bar">LOCAL POCKET · STRONG CONTENT → STRONG OPERATIONS → LEASING & ASSET VALUE</div>
+      <header class="topbar">
+        <div class="top-context">
+          <div><span>项目</span><strong id="topProject">地方口袋美食食集</strong></div>
+          <div><span>执行月份</span><strong id="topMonth">2026年8月</strong></div>
+        </div>
+        <strong class="top-wordmark">LOCAL POCKET</strong>
+        <div class="top-utility">
+          <div class="role-switch" aria-label="角色视图">
+            <span>当前视图</span>
+            <button class="active" type="button" data-role="owner">老板</button>
+            <button type="button" data-role="operations">运营</button>
+            <button type="button" data-role="leasing">招商</button>
+            <button type="button" data-role="merchant">商户</button>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" type="button" id="exportResult" title="导出方案" aria-label="导出方案">⇩</button>
+            <button class="button top-primary" type="button" data-open-wizard>调整本月输入</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="question-view active" id="q1View">
+        <header class="owner-overview-intro">
+          <div>
+            <span class="question-number">项目经营总览</span>
+            <h1>项目经营总览</h1>
+            <p>地方口袋美食食集 · 2026年8月</p>
+          </div>
+          <form class="owner-inline-ai" id="ownerAiForm">
+            <label for="ownerAiPrompt">问项目</label>
+            <input id="ownerAiPrompt" aria-label="输入经营问题" placeholder="本月最需要关注什么？">
+            <button type="submit" id="ownerAiSubmit" title="生成分析" aria-label="生成分析">↑</button>
+          </form>
+          <div class="owner-stage"><i></i><span>当前阶段</span><strong>经营验证准备期</strong></div>
+        </header>
+
+        <section class="owner-executive-result" aria-label="老板经营结论">
+          <div>
+            <span>AI 经营结论</span>
+            <h2 id="executiveConclusion">正在读取项目资料并形成经营判断。</h2>
+            <small id="ownerAiReason">分析将只使用当前项目已登记的数据。</small>
+          </div>
+          <dl>
+            <div><dt>本月进展</dt><dd>内容与项目资料已准备</dd></div>
+            <div><dt>主要风险</dt><dd>真实反馈闭环尚未发生</dd></div>
+            <div><dt>下一节点</dt><dd>获得首条真实商户或到店反馈</dd></div>
+          </dl>
+        </section>
+
+        <section class="owner-stage-kpis" aria-label="当前阶段关键指标">
+          <article><span>可用内容</span><strong id="contentAssetCount">6</strong><small>项资产</small></article>
+          <article><span>真实采用</span><strong id="ownerAdoptedCount">0</strong><small>项内容</small></article>
+          <article><span>参与商户</span><strong id="ownerMerchantCount">--</strong><small>未采集</small></article>
+          <article><span>招商反馈</span><strong id="ownerLeadCount">--</strong><small>未采集</small></article>
+        </section>
+
+        <section class="owner-analysis-layout">
+          <figure class="owner-chain-chart">
+            <figcaption>
+              <div><span>本月数据</span><h2>经营链路转化</h2></div>
+              <small>从内容准备到真实招商反馈</small>
+            </figcaption>
+            <div class="owner-chart-plot" role="img" aria-label="内容准备、真实采用、商户参与和招商反馈的柱状比较">
+              <article>
+                <strong id="ownerChartContentValue">6</strong>
+                <div><i id="ownerChartContentBar"></i></div>
+                <span>内容准备</span>
+                <small>已有依据</small>
+              </article>
+              <article>
+                <strong id="ownerChartAdoptedValue">0</strong>
+                <div><i id="ownerChartAdoptedBar"></i></div>
+                <span>真实采用</span>
+                <small>待开始</small>
+              </article>
+              <article>
+                <strong id="ownerChartMerchantValue">--</strong>
+                <div><i id="ownerChartMerchantBar"></i></div>
+                <span>商户参与</span>
+                <small>未采集</small>
+              </article>
+              <article>
+                <strong id="ownerChartLeadValue">--</strong>
+                <div><i id="ownerChartLeadBar"></i></div>
+                <span>招商反馈</span>
+                <small>未采集</small>
+              </article>
+            </div>
+          </figure>
+
+          <section class="owner-decision-table">
+            <header><div><span>需要老板决定</span><h2>下一阶段决策</h2></div><strong>3 项</strong></header>
+            <div class="owner-decision-table-head"><span>事项</span><span>系统建议</span><span>状态</span></div>
+            <div id="ownerDecisionList">
+              <button type="button"><span>内容费用上限</span><small>先确认本轮可用范围</small><b class="status pending">待确认</b></button>
+              <button type="button"><span>真实测试范围</span><small>选择首批内容与渠道</small><b class="status pending">待确认</b></button>
+              <button type="button"><span>首批商户范围</span><small>确认真实参与名单</small><b class="status pending">待确认</b></button>
+            </div>
+          </section>
+        </section>
+      </section>
+
+      <section class="question-view owner-campaign-view" id="q5View">
+        <header class="page-intro">
+          <div><span class="question-number">月度战役与审批</span><h1>2026年8月经营战役</h1><p>用演示文稿快速看完整策略，只在右侧处理需要老板确认的内容。</p></div>
+          <div class="page-status"><span>Brief 状态</span><strong>待确认</strong><small>确认后才进入正式排期</small></div>
+        </header>
+        <section class="owner-deck-shell">
+          <nav class="owner-slide-rail" aria-label="Brief 章节">
+            <button class="active" type="button" data-brief="brief-summary"><b>00</b><span>单页摘要</span></button>
+            <button type="button" data-brief="brief-goal"><b>01</b><span>经营目标</span></button>
+            <button type="button" data-brief="brief-audience"><b>02</b><span>目标客群</span></button>
+            <button type="button" data-brief="brief-content"><b>03</b><span>内容方向</span></button>
+            <button type="button" data-brief="brief-operations"><b>04</b><span>商户协同</span></button>
+            <button type="button" data-brief="brief-measure"><b>05</b><span>验证方式</span></button>
+          </nav>
+          <article class="owner-slide-stage" id="briefDocument">
+            <span>摘要</span><h3>本月经营战役摘要</h3><p>围绕整体经营规划，以地方食物内容带动到访与消费，同时验证商户协同与招商表达的实际效果。</p><blockquote>强内容驱动强运营，强运营反哺招商、租赁与空间资产价值。</blockquote>
+          </article>
+          <aside class="owner-approval-panel">
+            <header><span>本页需要确认</span><strong>3 项</strong></header>
+            <dl><div><dt>本月目标</dt><dd>验证内容对到访和消费的促进作用</dd></div><div><dt>资源优先级</dt><dd>内容生产优先，商户和现场承接随后</dd></div><div><dt>预算范围</dt><dd class="missing-text">尚未确认</dd></div></dl>
+            <div><button type="button" class="button secondary" data-open-wizard>修改输入</button><button type="button" class="button primary" id="adoptResult">确认采用</button></div>
+          </aside>
+        </section>
+      </section>
+
+      <section class="question-view owner-progress-view" id="q6View">
+        <header class="page-intro">
+          <div><span class="question-number">执行与协同进展</span><h1>各角色正在如何共同推进</h1><p>按经营链路查看运营、商户和招商之间的交接结果，只突出阻塞下一阶段的事项。</p></div>
+          <div class="page-status"><span>整体状态</span><strong>部分阻塞</strong><small>主要阻塞：商户和真实反馈</small></div>
+        </header>
+        <section class="owner-handoff-map">
+          <header><span>本月协同链路</span><strong>1 / 4 个关键交接已具备</strong></header>
+          <div class="handoff-flow">
+            <article class="available"><i>运营</i><strong>内容策略与首轮草案</strong><small>将主题、文案和素材需求交给商户协同</small><b>已形成</b></article>
+            <article class="missing"><i>商户</i><strong>产品、图片与参与方式</strong><small>将真实产品和现场配合信息交回运营</small><b>未提交</b></article>
+            <article class="missing"><i>现场</i><strong>到店与消费反馈</strong><small>将可追溯结果交给经营复盘和招商</small><b>未采集</b></article>
+            <article class="pending"><i>招商</i><strong>候选品牌与跟进反馈</strong><small>使用经营证据形成招商材料并回传疑虑</small><b>待真实名单</b></article>
+          </div>
+        </section>
+        <section class="owner-progress-grid">
+          <article class="owner-progress-lanes">
+            <header><span>角色推进状态</span><h2>本周关键进展</h2></header>
+            <div><i class="operations">运营</i><span><strong>首批内容主题</strong><small>草案已形成，等待老板确认方向</small></span><b class="status pending">待审核</b></div>
+            <div><i class="merchant">商户</i><span><strong>参与商户材料</strong><small>任务入口已准备，真实商户名单待确认</small></span><b class="status missing">未开始</b></div>
+            <div><i class="leasing">招商</i><span><strong>候选品牌准备</strong><small>3类候选画像已形成，尚无真实品牌线索</small></span><b class="status pending">准备中</b></div>
+          </article>
+          <aside class="owner-blocker-panel"><span>当前最大阻塞</span><h2>商户真实参与尚未发生</h2><p>没有真实产品、图片和参与方式，运营无法完成正式内容，现场也无法形成可追溯反馈。</p><button class="button primary" type="button">查看商户协同缺口</button></aside>
+        </section>
+      </section>
+
+      <section class="question-view" id="q2View">
+        <header class="page-intro">
+          <div><span class="question-number">运营工作台</span><h1>今日执行与本月内容安排</h1><p>先处理到期任务、待审核和缺失素材，再查看完整内容成品。</p></div>
+          <button class="button primary" type="button" data-open-wizard>重新生成方案</button>
+        </header>
+
+        <section class="result-summary-row operations-summary" aria-label="内容执行状态摘要">
+          <article><span>今日待处理</span><strong>3</strong><small>项 · 按优先级执行</small></article>
+          <article><span>待审核内容</span><strong>1</strong><small>项 · 需要确认方向</small></article>
+          <article><span>缺失素材</span><strong>2</strong><small>类 · 商户图片与现场信息</small></article>
+          <article><span>最近截止</span><strong>8月10日</strong><small>先确认首批内容主题</small></article>
+        </section>
+
+        <section class="work-section task-work operations-priority">
+          <header class="section-header"><div><span>执行任务</span><h2>今天先处理这 3 件事</h2></div><button type="button" class="button secondary">查看全部任务</button></header>
+          <div class="operation-action-list task-list" id="operationTasks">
+            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>优先级高</span><strong>确认本月首批内容主题</strong><small>阻塞：需要负责人确认主题方向</small></div><span>运营负责人</span><time>8月10日</time><b class="status pending">待确认</b><button class="button secondary task-open" type="button" data-task-open="确认首批内容主题">打开</button></article>
+            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>缺失素材</span><strong>收集参与商户产品与图片</strong><small>阻塞：尚未确认参与商户名单</small></div><span>商户负责人</span><time>8月12日</time><b class="status missing">未开始</b><button class="button secondary task-open" type="button" data-task-open="收集商户素材">打开</button></article>
+            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>待协同</span><strong>确认周末现场承接路线</strong><small>阻塞：需要现场负责人补充动线信息</small></div><span>现场负责人</span><time>8月14日</time><b class="status missing">未开始</b><button class="button secondary task-open" type="button" data-task-open="确认现场路线">打开</button></article>
+          </div>
+        </section>
+
+        <section class="work-section calendar-work">
+          <header class="section-header">
+            <div><span>内容日历</span><h2>待排期内容与审核节点</h2></div>
+            <div class="calendar-state"><span>当前状态</span><strong>日期待确认</strong></div>
+          </header>
+          <div class="schedule-queue">
+            <article><i class="xhs"></i><span><b>小红书</b><small>地方味道人物故事</small></span><em>素材已具备</em><strong>待审核</strong></article>
+            <article><i class="wechat"></i><span><b>公众号</b><small>本月经营主题长文</small></span><em>文案草案</em><strong>等待确认</strong></article>
+            <article><i class="video"></i><span><b>短视频</b><small>周末现场路线</small></span><em>现场画面未采集</em><strong>缺失素材</strong></article>
+            <article><i class="event"></i><span><b>现场活动</b><small>限定产品联动</small></span><em>商户名单待确认</em><strong>待协同</strong></article>
+          </div>
+        </section>
+
+        <section class="content-studio operations-content-studio">
+          <header class="studio-toolbar">
+            <div><span>最新内容成品</span><h2 id="contentDirection">地方食物如何进入当代城市生活</h2></div>
+            <div class="segmented" id="platformTabs"><button class="active" type="button" data-platform="xiaohongshu">小红书</button><button type="button" data-platform="wechat">公众号</button><button type="button" data-platform="video">短视频</button></div>
+          </header>
+          <div class="content-preview-layout">
+            <article class="content-document">
+              <span class="content-kicker" id="contentKicker">本月主推内容 · 小红书</span>
+              <h3 id="contentHeadline">一座城市的味道，如何被重新装进口袋？</h3>
+              <p id="contentLead">从真实的地方食物、主理人和现场空间出发，形成可阅读、可到访、可消费的本月内容主线。</p>
+              <div class="content-outline" id="contentOutline">
+                <p><b>01</b><span>从一个具体味道进入地方生活</span></p>
+                <p><b>02</b><span>让商户、产品和空间共同讲述</span></p>
+                <p><b>03</b><span>把阅读兴趣承接到现场行动</span></p>
+              </div>
+              <footer><span class="status pending">待审核</span><button type="button" class="text-action">查看完整文案 →</button></footer>
+            </article>
+            <figure class="platform-preview">
+              <img id="platformImage" src="assets/place-dining.jpg" alt="内容发布预览">
+              <figcaption><span id="previewPlatform">小红书发布预览</span><small>实际平台、日期和素材仍需确认</small></figcaption>
+            </figure>
+          </div>
+        </section>
+      </section>
+
+      <section class="question-view" id="q3View">
+        <header class="page-intro">
+          <div><span class="question-number">招商工作台</span><h1>商户协同与招商推进</h1><p>用内容证据支持商户协同和招商跟进，不把尚未发生的意向写成真实进展。</p></div>
+          <button class="button secondary" type="button">补充真实品牌名单</button>
+        </header>
+
+        <section class="result-summary-row leasing-summary" aria-label="招商推进状态摘要">
+          <article><span>真实招商线索</span><strong>0</strong><small>尚未录入</small></article>
+          <article><span>候选业态</span><strong>3</strong><small>类 · 待补真实品牌</small></article>
+          <article><span>可用招商材料</span><strong>2</strong><small>类 · 已有依据</small></article>
+          <article><span>经营表现证据</span><strong>1</strong><small>类缺口 · 未采集</small></article>
+        </section>
+
+        <section class="candidate-preparation" id="candidatePreparation">
+          <header class="section-header"><div><span>候选品牌准备</span><h2>先确定真实品牌，再进入跟进管道</h2></div><div class="pipeline-summary"><b>0</b> 真实线索 · <b>3</b> 类候选画像</div></header>
+          <div class="candidate-prep-grid">
+            <button class="candidate-card active" type="button" data-lead="local-food"><span>01 · 候选画像</span><strong>地方食物代表品牌</strong><p>在地产品、人物故事与持续内容能力匹配度高。</p><small>需补：真实品牌名单</small></button>
+            <button class="candidate-card" type="button" data-lead="creator"><span>02 · 候选画像</span><strong>主理人餐饮品牌</strong><p>适合以人物、限定产品和现场体验共同运营。</p><small>需补：品牌意愿与经营条件</small></button>
+            <button class="candidate-card" type="button" data-lead="culture"><span>03 · 候选画像</span><strong>地方文化产品品牌</strong><p>可把地方文化转成游客可理解、可携带的消费产品。</p><small>需补：产品与价格带资料</small></button>
+            <article class="leasing-next-actions"><span>现在只做 3 步</span><ol><li><b>01</b>补充真实品牌名单</li><li><b>02</b>确认对应铺位和经营条件</li><li><b>03</b>有真实联系后创建招商线索</li></ol></article>
+          </div>
+        </section>
+
+        <section class="pipeline-work" id="realLeasingPipeline" hidden>
+          <header class="section-header"><div><span>招商管道</span><h2>真实线索与跟进阶段</h2></div><div class="pipeline-summary"><b>0</b> 真实线索</div></header>
+          <div class="pipeline-board" id="leasingPipeline"></div>
+        </section>
+
+        <section class="leasing-detail-grid">
+          <article class="lead-detail" id="leadDetail">
+            <header><div><span>候选画像详情</span><h2>地方食物代表品牌</h2></div><b class="status pending">候选类型</b></header>
+            <dl>
+              <div><dt>推荐理由</dt><dd>具备真实产地、人物和产品内容，可形成持续市场表达。</dd></div>
+              <div><dt>适配位置</dt><dd>主入口内容展示位 / 可体验餐饮点位</dd></div>
+              <div><dt>需要验证</dt><dd>经营条件、现场适配、品牌意愿与真实铺位</dd></div>
+              <div><dt>下一动作</dt><dd>补充真实品牌名单后生成一对一招商材料</dd></div>
+            </dl>
+          </article>
+          <article class="leasing-ammo">
+            <header><span>可使用的招商弹药</span><strong>3 类</strong></header>
+            <button type="button"><i>01</i><span><b>项目内容主张</b><small>项目故事与本月经营主题</small></span><em>可用</em></button>
+            <button type="button"><i>02</i><span><b>空间与消费场景</b><small>入口、路线与现场体验</small></span><em>可用</em></button>
+            <button type="button"><i>03</i><span><b>经营表现证据</b><small>到店、消费与商户反馈</small></span><em class="missing-text">未采集</em></button>
+          </article>
+        </section>
+
+        <section class="work-section merchant-task-work">
+          <header class="section-header"><div><span>商户协同</span><h2>参与商户任务与反馈</h2></div><button type="button" class="button secondary">创建简单任务链接</button></header>
+          <div class="merchant-table">
+            <header><span>任务</span><span>参与商户</span><span>截止时间</span><span>提交材料</span><span>状态</span></header>
+            <article><strong>提交本月主推产品与价格</strong><span>待确认</span><time>待设置</time><span>图片 / 产品 / 价格</span><b class="status missing">未派发</b></article>
+            <article><strong>确认联合内容与现场活动</strong><span>待确认</span><time>待设置</time><span>参与方式 / 负责人</span><b class="status missing">未派发</b></article>
+          </div>
+        </section>
+      </section>
+
+      <section class="question-view" id="q4View">
+        <header class="page-intro">
+          <div><span class="question-number">经营价值与趋势</span><h1>哪些价值已经发生，哪些仍待验证</h1><p>把运营、商户和招商反馈汇总为证据；缺少的数据明确显示未采集。</p></div>
+          <button class="button secondary" type="button">导出月报</button>
+        </header>
+
+        <section class="insight-band">
+          <span>当前判断</span>
+          <h2>项目资料和基础记录已基本整理，但真实经营闭环仍缺少连续的到店、消费、商户和招商反馈。</h2>
+          <p>因此本月只展示证据准备度，不计算经营 ROI，也不对内容效果作确定归因。</p>
+        </section>
+
+        <section class="measurement-readiness">
+          <header><div><span>首轮数据准备</span><h2>先把 4 类反馈记录起来</h2></div><strong>1 / 4 已准备</strong></header>
+          <div class="readiness-action-list">
+            <article><i>01</i><span><b>内容发布与采用</b><small>记录实际发布平台、日期和采用版本</small></span><em>运营</em><strong class="status pending">待记录</strong></article>
+            <article><i>02</i><span><b>到店与消费反馈</b><small>选择现场观察、核销、顾客自述或平台数据</small></span><em>现场</em><strong class="status missing">未采集</strong></article>
+            <article><i>03</i><span><b>商户参与与完成</b><small>确认参与名单、任务完成和商户反馈</small></span><em>商户协同</em><strong class="status missing">未采集</strong></article>
+            <article><i>04</i><span><b>招商与租赁反馈</b><small>记录真实联系、品牌疑虑和意向阶段</small></span><em>招商</em><strong class="status missing">未采集</strong></article>
+          </div>
+        </section>
+
+        <section class="analytics-grid">
+          <article class="first-measurement-panel">
+            <header><div><span>第一轮验证</span><h2>本月先完成一条可追溯记录</h2></div><b class="status pending">等待首条数据</b></header>
+            <ol><li><b>01</b><span><strong>确认一件已发布内容</strong><small>保留平台、日期和最终版本</small></span></li><li><b>02</b><span><strong>关联一次真实到店或商户反馈</strong><small>写明反馈来源，不进行过度归因</small></span></li><li><b>03</b><span><strong>由负责人确认可信程度</strong><small>确定相关、可能相关或暂无法判断</small></span></li></ol>
+            <button class="button primary" type="button" data-feedback-start>开始记录真实反馈</button>
+          </article>
+          <article class="evidence-panel">
+            <header><span>证据完整度</span><strong id="evidenceRate">读取中</strong></header>
+            <div class="evidence-meter"><i id="evidenceBar"></i></div>
+            <ul><li><span>项目与内容资料</span><b class="status available">已有依据</b></li><li><span>商户参与记录</span><b class="status missing">未采集</b></li><li><span>到店与消费反馈</span><b class="status missing">未采集</b></li><li><span>招商与租赁反馈</span><b class="status missing">未采集</b></li></ul>
+          </article>
+        </section>
+
+        <article class="trend-panel" id="trendPanel" hidden>
+          <header><div><span>指标趋势</span><h2>内容 → 到店 → 消费 → 招商反馈</h2></div><div class="segmented"><button class="active" type="button">本月</button><button type="button">近 3 月</button></div></header>
+          <div class="chart-wrap"><canvas id="trendCanvas" width="960" height="280" aria-label="经营指标趋势图"></canvas></div>
+          <footer><span><i class="content-line"></i>内容表现</span><span><i class="visit-line"></i>到店消费</span><span><i class="leasing-line"></i>招商反馈</span></footer>
+        </article>
+
+        <details class="work-section attribution-work evidence-disclosure">
+          <summary><span>价值归因</span><strong>查看反馈来源与归因程度</strong><small>没有证据时不推断“确定有效”</small></summary>
+          <div class="attribution-table">
+            <header><span>结果对象</span><span>当前反馈</span><span>反馈来源</span><span>归因程度</span><span>判断</span></header>
+            <article><strong>本月内容输出</strong><span>未采集</span><span>未采集</span><b class="status missing">未知</b><p>等待真实发布</p></article>
+            <article><strong>到店与消费</strong><span>未采集</span><span>未采集</span><b class="status missing">未知</b><p>不能归因</p></article>
+            <article><strong>招商线索</strong><span>尚无真实线索</span><span>未采集</span><b class="status missing">未知</b><p>不能归因</p></article>
+          </div>
+        </details>
+
+        <section class="next-decision-band">
+          <div><span>下月决策建议</span><h2>先完成第一轮真实反馈采集，再决定扩大内容投入或调整招商重点。</h2></div>
+          <button class="button primary" type="button" data-open-wizard>准备下月 Brief</button>
+        </section>
+      </section>
+
+      <section class="question-view owner-decision-view" id="q7View">
+        <header class="page-intro">
+          <div><span class="question-number">下月决策与月报</span><h1>把本月结果转成下月行动</h1><p>用决策备忘录处理预算、优先级和阶段推进，详细依据保留在月报中。</p></div>
+          <button class="button secondary" type="button" data-export-owner-report>导出老板月报</button>
+        </header>
+        <section class="owner-decision-layout">
+          <article class="decision-memo">
+            <header><div><span>决策备忘录 · 2026年8月</span><h2>下月先补真实反馈，不建议立即扩大投入</h2></div><b class="status pending">等待拍板</b></header>
+            <div class="decision-memo-list">
+              <article><i>01</i><div><span>是否继续当前内容方向</span><strong>建议继续，但先完成一轮真实发布与现场反馈</strong><small>依据：运营草案已形成；到店与消费反馈未采集</small></div><em>来自运营 + 经营反馈</em><button class="button secondary" type="button">给出意见</button></article>
+              <article><i>02</i><div><span>是否扩大预算</span><strong>暂不扩大，待确认商户参与和现场承接能力</strong><small>依据：参与商户和真实执行数据仍为空</small></div><em>来自商户协同</em><button class="button secondary" type="button">给出意见</button></article>
+              <article><i>03</i><div><span>是否启动真实招商跟进</span><strong>先补真实品牌名单，再使用内容与空间材料接触</strong><small>依据：3类画像和2类材料可用；真实线索为0</small></div><em>来自招商</em><button class="button secondary" type="button">给出意见</button></article>
+            </div>
+          </article>
+          <aside class="owner-report-cover">
+            <div><span>MONTHLY OPERATING REPORT</span><small>地方口袋美食食集</small><strong>2026<br>08</strong><p>内容、运营、商户、招商与空间价值月报</p></div>
+            <footer><span>证据状态</span><b>部分待补充</b></footer>
+            <button class="button primary" type="button" data-export-owner-report>导出月报</button>
+          </aside>
+        </section>
+
+        <details class="work-section analysis-work owner-analysis-disclosure">
+          <summary><span>完整经营依据</span><strong>展开经营判断、证据与下一动作</strong><small>用于追溯，不占用老板首屏</small></summary>
+          <div class="table-wrap">
+            <table class="analysis-table" aria-label="经营分析总表">
+              <thead><tr><th>经营模块</th><th>经营判断</th><th>关键依据 / 缺口</th><th>证据状态</th><th>下一动作</th></tr></thead>
+              <tbody id="analysisTableBody"><tr><td>项目经营状态</td><td>资料整理中</td><td>项目资料已继承</td><td><b class="status pending">整理中</b></td><td>等待经营判断</td></tr></tbody>
+            </table>
+          </div>
+        </details>
+      </section>
+
+      <section class="merchant-role-view" id="merchantView" aria-hidden="true">
+        <header class="merchant-standalone-bar"><a href="./"><span>地方<br>口袋</span><strong>LOCAL POCKET · 商户任务</strong></a><button class="text-action" type="button" data-role-exit>返回项目经营台</button></header>
+        <header class="page-intro merchant-page-intro">
+          <div>
+            <span class="question-number">商户任务中心</span>
+            <h1>本月只需要完成 3 件事</h1>
+            <p>查看本月主题、提交必要材料，并确认与本月经营活动直接相关的参与方式。</p>
+          </div>
+          <div class="merchant-progress"><span>当前进度</span><strong id="merchantProgressValue">0 / 3</strong><small id="merchantProgressText">任务尚未开始</small></div>
+        </header>
+
+        <section class="merchant-task-section merchant-sequence">
+          <header class="section-header">
+            <div><span>下一项任务</span><h2>每次只完成一步</h2></div>
+            <div class="merchant-deadline"><span>本轮截止</span><strong>8月12日</strong></div>
+          </header>
+          <div class="merchant-sequence-layout">
+            <ol class="merchant-stepper" aria-label="商户任务进度">
+              <li class="active" data-merchant-step-indicator="1"><b>01</b><span><strong>产品与价格</strong><small>正在进行</small></span></li>
+              <li data-merchant-step-indicator="2"><b>02</b><span><strong>图片与故事</strong><small>下一步</small></span></li>
+              <li data-merchant-step-indicator="3"><b>03</b><span><strong>参与方式</strong><small>最后一步</small></span></li>
+            </ol>
+            <div class="merchant-step-panels">
+              <form class="merchant-step-panel active" data-merchant-step="1">
+                <span>任务 1 / 3</span><h2>提交本月主推产品与价格</h2><p>只填写本月真实有效的产品信息。</p>
+                <div class="merchant-form-grid"><label><span>产品名称</span><input type="text" name="product_name" placeholder="例如：本月限定桂花糕"></label><label><span>售价</span><input type="text" name="product_price" placeholder="例如：38 元 / 份"></label><label class="full"><span>一句推荐理由</span><textarea name="product_reason" placeholder="说清楚产品特点和本月为什么值得推荐"></textarea></label></div>
+                <footer><small>信息可以稍后修改</small><button class="button primary" type="button" data-merchant-next>保存并继续</button></footer>
+              </form>
+              <form class="merchant-step-panel" data-merchant-step="2">
+                <span>任务 2 / 3</span><h2>上传图片与品牌故事</h2><p>上传 3–6 张原图，再写一段真实的人物或产品故事。</p>
+                <div class="merchant-upload"><label><span>选择图片</span><input type="file" name="merchant_images" accept="image/*" multiple></label><label><span>品牌或产品故事</span><textarea name="brand_story" placeholder="可以写谁在做、为什么做、产品与地方的关系"></textarea></label></div>
+                <footer><button class="text-action" type="button" data-merchant-prev>返回上一步</button><button class="button primary" type="button" data-merchant-next>保存并继续</button></footer>
+              </form>
+              <form class="merchant-step-panel" data-merchant-step="3">
+                <span>任务 3 / 3</span><h2>确认联合内容与现场参与</h2><p>选择本月可以配合的方式，不确定的可以暂不选。</p>
+                <div class="merchant-choice-list"><label><input type="checkbox" name="participation" value="content"><span><b>内容拍摄</b><small>提供产品和人物出镜</small></span></label><label><input type="checkbox" name="participation" value="event"><span><b>现场活动</b><small>参与限定产品或周末活动</small></span></label><label><input type="checkbox" name="participation" value="share"><span><b>联合传播</b><small>在自有账号转发本月内容</small></span></label></div>
+                <footer><button class="text-action" type="button" data-merchant-prev>返回上一步</button><button class="button primary" type="button" data-merchant-submit>确认提交</button></footer>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section class="merchant-theme-band merchant-theme-compact">
+          <div><span>2026年8月 · 本月经营主题</span><h2>一座城市的味道，如何被重新装进口袋？</h2><p>通过真实产品、人物故事和现场体验，让顾客产生到访与消费理由。</p></div>
+          <aside><span>你的参与价值</span><strong>产品获得内容曝光，并进入本月现场消费场景。</strong><small>实际发布、活动安排和采用结果以项目方最终确认为准。</small></aside>
+        </section>
+
+        <section class="merchant-support-grid">
+          <figure class="merchant-example">
+            <img src="assets/place-dining.jpg" alt="本月内容示例">
+            <figcaption><span>本月内容示例</span><strong>真实产品 + 人物故事 + 现场体验</strong><small>示例只帮助理解提交方向，不代表最终发布版式。</small></figcaption>
+          </figure>
+          <article class="merchant-help">
+            <span>提交标准</span>
+            <h2>信息少，但必须真实可用</h2>
+            <ul>
+              <li><b>01</b><span>价格、产品和活动信息必须是本月有效信息。</span></li>
+              <li><b>02</b><span>图片尽量使用原图，不需要提前设计排版。</span></li>
+              <li><b>03</b><span>不确定的内容可以标记待确认，不需要猜测。</span></li>
+            </ul>
+            <button class="text-action" type="button" data-merchant-action="联系项目负责人">联系项目负责人 →</button>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <section class="wizard-overlay" id="planWizard" aria-hidden="true">
+    <aside class="wizard-aside">
+      <button class="wizard-close" type="button" id="closeWizard" aria-label="关闭输入">×</button>
+      <span class="brand-mark">地方<br>口袋</span>
+      <div>
+        <span>已自动读取</span>
+        <h2>只填写本月发生的变化</h2>
+        <p>项目定位、空间资料、历史内容和已批准素材会自动参与，不需要重复录入。</p>
+      </div>
+      <ul><li><i>✓</i> 项目定位与当前阶段</li><li><i>✓</i> 空间、商户和经营资产</li><li><i>✓</i> 已批准内容与视觉素材</li><li><i>✓</i> 历史反馈与指标口径</li></ul>
+    </aside>
+    <div class="wizard-content">
+      <header class="wizard-header">
+        <div><span id="wizardStepLabel">步骤 1</span><strong id="wizardProgressText">1 / 5</strong></div>
+        <div class="wizard-progress"><i id="wizardProgressBar"></i></div>
+      </header>
+      <form id="planForm">
+        <input id="project_name" name="project_name" type="hidden" value="地方口袋美食食集">
+        <input id="month" name="month" type="hidden" value="2026-08">
+        <input id="target_audience" name="target_audience" type="hidden" value="mixed">
+
+        <section class="wizard-step active" data-step="1">
+          <span>本月经营目标</span><h1>选择本月首要经营目标</h1><p>只选一个主要目标，方案仍会覆盖内容、运营、商户和招商。</p>
+          <div class="option-grid" id="goalOptions">
+            <button class="option active" type="button" data-goal="overall_plan"><b>A</b><span><strong>整体经营</strong><small>让内容、商户和招商围绕同一目标</small></span></button>
+            <button class="option" type="button" data-goal="content_growth"><b>B</b><span><strong>内容增长</strong><small>形成关注、到访与消费理由</small></span></button>
+            <button class="option" type="button" data-goal="merchant_collaboration"><b>C</b><span><strong>商户协同</strong><small>推动商户参与和现场执行</small></span></button>
+            <button class="option" type="button" data-goal="merchant_attraction"><b>D</b><span><strong>招商推进</strong><small>形成品牌画像和入驻理由</small></span></button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="2">
+          <span>目标客群</span><h1>选择本月核心客群</h1><p>选择一个核心人群，其他相关角色仍会参与经营分析。</p>
+          <div class="option-grid">
+            <button class="option active" type="button" data-audience="mixed"><b>A</b><span><strong>消费者、游客与潜在商户</strong><small>同时考虑消费现场与经营合作</small></span></button>
+            <button class="option" type="button" data-audience="young_local"><b>B</b><span><strong>本地年轻消费者</strong><small>关注新鲜感、传播和复访</small></span></button>
+            <button class="option" type="button" data-audience="visitors"><b>C</b><span><strong>游客与外来消费者</strong><small>关注目的性、体验和城市记忆</small></span></button>
+            <button class="option" type="button" data-audience="merchants"><b>D</b><span><strong>潜在商户与合作方</strong><small>关注项目能力、匹配度和入驻理由</small></span></button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="3">
+          <span>本月预算</span><h1>确认本轮预算范围</h1><p>预算只用于控制方案规模，不会自动产生支出。</p>
+          <div class="option-list">
+            <button class="option active" type="button" data-budget="待确认"><b>A</b><span><strong>暂不锁定</strong><small>先确认方案范围，再由老板决定预算</small></span></button>
+            <button class="option" type="button" data-budget="5000元以内"><b>B</b><span><strong>5,000 元以内</strong><small>聚焦少量高优先级动作</small></span></button>
+            <button class="option" type="button" data-budget="5000至20000元"><b>C</b><span><strong>5,000–20,000 元</strong><small>覆盖内容、现场和商户协同</small></span></button>
+            <button class="option" type="button" data-budget="20000元以上"><b>D</b><span><strong>20,000 元以上</strong><small>允许更完整的活动与传播组合</small></span></button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="4">
+          <span>资源优先级</span><h1>确认本月资源优先级</h1><p>选择一个第一优先级，方案会据此安排其他工作的先后顺序。</p>
+          <div class="option-grid">
+            <button class="option active" type="button" data-priority="内容生产"><b>A</b><span><strong>内容生产</strong><small>先形成持续的市场刺激</small></span></button>
+            <button class="option" type="button" data-priority="商户与现场"><b>B</b><span><strong>商户与现场</strong><small>先让内容落到真实经营动作</small></span></button>
+            <button class="option" type="button" data-priority="招商推进"><b>C</b><span><strong>招商推进</strong><small>优先形成品牌线索和沟通材料</small></span></button>
+            <button class="option" type="button" data-priority="数据验证"><b>D</b><span><strong>数据验证</strong><small>优先补齐反馈和经营证据</small></span></button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-step="5">
+          <span>本月变化</span><h1>补充本月新增变化</h1><p>没有变化可以直接继续，已有资料会自动参与方案。</p>
+          <label class="context-input"><textarea id="additional_context" name="additional_context" placeholder="例如：本月新增周末夜间场次，希望优先验证年轻客群的到访兴趣。"></textarea><small>不要重复填写项目定位、空间资料、菜单和历史内容。</small></label>
+          <div class="input-summary"><p><span>经营目标</span><strong id="summaryGoal">整体经营</strong></p><p><span>目标客群</span><strong id="summaryAudience">消费者、游客与潜在商户</strong></p><p><span>预算范围</span><strong id="summaryBudget">暂不锁定</strong></p><p><span>第一优先级</span><strong id="summaryPriority">内容生产</strong></p></div>
+        </section>
+
+        <footer class="wizard-actions"><button class="button secondary" id="wizardBack" type="button" disabled>上一步</button><button class="button primary" id="wizardNext" type="button">下一步</button></footer>
+      </form>
+    </div>
+  </section>
+
+  <dialog id="feedbackDialog">
+    <form method="dialog" class="feedback-form">
+      <header><span>修改意见</span><h2>填写需要调整的结果</h2><p>只描述期望结果，无需说明生成过程。</p></header>
+      <textarea id="feedbackText" placeholder="例如：招商部分需要更具体；内容方向希望增加家庭客群。"></textarea>
+      <footer><button class="button secondary" value="cancel">取消</button><button class="button primary" id="saveFeedback" value="default">保存意见</button></footer>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="review-data.js"></script>
+  <script src="review-guard.js"></script>
+  <script src="client-preview.js"></script>
+</body>
+</html>
