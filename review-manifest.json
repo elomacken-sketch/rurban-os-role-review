@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "review_version": "2026-07-17",
+  "project": "Rurban OS",
+  "mode": "public_read_only",
+  "primary_entry": "MODEL_REVIEW.md",
+  "interactive_entry": "https://elomacken-sketch.github.io/rurban-os-role-review/app/",
+  "data_policy": {
+    "database_connected": false,
+    "api_connected": false,
+    "writes_persisted": false,
+    "contains_credentials": false,
+    "fixture_content_only": true
+  },
+  "screens": [
+    {"id":"owner-overview","role":"owner","label":"项目经营总览","screenshot":"screenshots/views/owner-overview.png","actions":["处理 3 件待决定事项"]},
+    {"id":"owner-campaign","role":"owner","label":"月度战役与审批","screenshot":"screenshots/views/owner-campaign.png","actions":["切换章节","修改输入","确认采用"]},
+    {"id":"owner-progress","role":"owner","label":"执行与协同进展","screenshot":"screenshots/views/owner-progress.png","actions":["查看商户协同缺口"]},
+    {"id":"owner-value","role":"owner","label":"经营价值与趋势","screenshot":"screenshots/views/owner-value.png","actions":["记录反馈","切换时间范围","准备下月方案"]},
+    {"id":"owner-decisions","role":"owner","label":"下月决策与月报","screenshot":"screenshots/views/owner-decisions.png","actions":["给出意见","导出月报"]},
+    {"id":"operations-today","role":"operations","label":"今日工作台","screenshot":"screenshots/views/operations-today.png","actions":["打开任务","标记完成","查看全部任务"]},
+    {"id":"operations-calendar","role":"operations","label":"内容日历与活动","screenshot":"screenshots/views/operations-calendar.png","actions":["切换筛选","打开内容"]},
+    {"id":"operations-content","role":"operations","label":"内容生产","screenshot":"screenshots/views/operations-content.png","actions":["切换平台","查看完整文案"]},
+    {"id":"leasing-overview","role":"leasing","label":"招商推进总览","screenshot":"screenshots/views/leasing-overview.png","actions":["补充真实品牌名单"]},
+    {"id":"leasing-candidates","role":"leasing","label":"品牌画像与候选库","screenshot":"screenshots/views/leasing-candidates.png","actions":["切换候选画像"]},
+    {"id":"leasing-ammo","role":"leasing","label":"铺位与招商材料","screenshot":"screenshots/views/leasing-ammo.png","actions":["打开材料","查看缺失项"]},
+    {"id":"leasing-merchants","role":"leasing","label":"商户协同反馈","screenshot":"screenshots/views/leasing-merchants.png","actions":["生成任务链接"]},
+    {"id":"merchant-step-1","role":"merchant","label":"提交产品与价格","screenshot":"screenshots/views/merchant-step-1.png","actions":["保存并继续"]},
+    {"id":"merchant-step-2","role":"merchant","label":"上传图片与品牌故事","screenshot":"screenshots/views/merchant-step-2.png","actions":["选择图片","保存并继续","返回上一步"]},
+    {"id":"merchant-step-3","role":"merchant","label":"确认参与方式","screenshot":"screenshots/views/merchant-step-3.png","actions":["确认提交","返回上一步"]},
+    {"id":"input-step-1","role":"input","label":"选择本月目标","screenshot":"screenshots/views/input-step-1.png","actions":["选择目标","下一步"]},
+    {"id":"input-step-2","role":"input","label":"选择重点客群","screenshot":"screenshots/views/input-step-2.png","actions":["选择客群","上一步","下一步"]},
+    {"id":"input-step-3","role":"input","label":"确认费用范围","screenshot":"screenshots/views/input-step-3.png","actions":["选择费用范围","上一步","下一步"]},
+    {"id":"input-step-4","role":"input","label":"选择第一优先级","screenshot":"screenshots/views/input-step-4.png","actions":["选择优先级","上一步","下一步"]},
+    {"id":"input-step-5","role":"input","label":"补充本月新增变化","screenshot":"screenshots/views/input-step-5.png","actions":["填写变化","上一步","生成本月方案"]}
+  ],
+  "known_issues": [
+    "商户入口仍显示在内部角色切换器中",
+    "商户任务页仍保留返回项目经营台入口",
+    "部分用户可见词汇仍需继续改成人话"
+  ]
+}

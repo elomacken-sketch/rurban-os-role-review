@@ -1,13 +1,21 @@
-# Rurban OS 全界面只读评审
+# Rurban OS 外部模型固定评审入口
 
-这是供 Claude、GPT 和项目评审人员查看的公开只读包。页面不连接数据库，不保存输入，也不包含访问凭证。
+这是供 Claude、GPT、Gemini 和项目评审人员查看的公开只读包。页面不连接数据库，不保存输入，也不包含访问凭证。
+
+## 每次只发这一个链接
+
+**[打开模型专用完整评审文档](MODEL_REVIEW.md)**
+
+模型不能运行 JavaScript 或不能点击网页时，仍可在该文档中看到 20 个固定页面状态、全部主要按钮及点击结果。不要只把 `/app/` 交给外部模型，也不要再发送本地地址或临时隧道。
 
 ## 评审入口
 
+- [模型专用完整评审文档](MODEL_REVIEW.md)
 - [模型可读静态总览](https://elomacken-sketch.github.io/rurban-os-role-review/)
 - [浏览器只读交互界面](https://elomacken-sketch.github.io/rurban-os-role-review/app/)
+- [结构化页面与交互清单](review-manifest.json)
 
-## 四角色完整截图
+## 四角色首页截图
 
 - [老板视图](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/owner.png)
 - [运营视图](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/operations.png)
