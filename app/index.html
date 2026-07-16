@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="client-preview.css">
 </head>
 <body data-view="q1">
-  <div class="review-mode-badge" role="status">外部评审只读版 · 交互不保存</div>
+  <div class="review-mode-badge" role="status">外部评审只读版 · 操作不保存</div>
   <div class="app-shell">
     <aside class="sidebar">
       <a class="brand" href="./" aria-label="地方口袋项目经营台">
@@ -22,18 +22,18 @@
       </button>
 
       <nav class="question-nav" id="roleNavigation" aria-label="老板经营栏目">
-        <span class="nav-label">老板经营视图</span>
+        <span class="nav-label">老板工作台</span>
         <button class="question-link active" type="button" data-question="q1">
           <b>01</b><span><strong>项目经营总览</strong><small>阶段、重点与风险</small></span>
         </button>
         <button class="question-link" type="button" data-question="q5">
-          <b>02</b><span><strong>月度战役与审批</strong><small>Brief、预算与优先级</small></span>
+          <b>02</b><span><strong>月度战役与审批</strong><small>目标、预算与优先级</small></span>
         </button>
         <button class="question-link" type="button" data-question="q6">
           <b>03</b><span><strong>执行与协同进展</strong><small>运营、商户与招商</small></span>
         </button>
         <button class="question-link" type="button" data-question="q4">
-          <b>04</b><span><strong>经营价值与趋势</strong><small>指标、证据与归因</small></span>
+          <b>04</b><span><strong>经营价值与趋势</strong><small>结果、数据与趋势</small></span>
         </button>
         <button class="question-link" type="button" data-question="q7">
           <b>05</b><span><strong>下月决策与月报</strong><small>建议、审批与导出</small></span>
@@ -41,8 +41,8 @@
       </nav>
 
       <div class="sidebar-actions">
-        <button class="button sidebar-primary" type="button" data-open-wizard>＋ 生成本月方案</button>
-        <button class="text-action" type="button" id="openFeedback">提交意见</button>
+        <button class="button sidebar-primary" type="button" data-open-wizard>调整本月目标</button>
+        <button class="text-action" type="button" id="openFeedback">留言</button>
       </div>
 
       <footer>
@@ -52,7 +52,7 @@
     </aside>
 
     <main class="main">
-      <div class="announcement-bar">LOCAL POCKET · STRONG CONTENT → STRONG OPERATIONS → LEASING & ASSET VALUE</div>
+      <div class="announcement-bar">帮你看清进展、做好内容、推动商户与招商</div>
       <header class="topbar">
         <div class="top-context">
           <div><span>项目</span><strong id="topProject">地方口袋美食食集</strong></div>
@@ -68,91 +68,59 @@
             <button type="button" data-role="merchant">商户</button>
           </div>
           <div class="top-actions">
-            <button class="icon-button" type="button" id="exportResult" title="导出方案" aria-label="导出方案">⇩</button>
-            <button class="button top-primary" type="button" data-open-wizard>调整本月输入</button>
+            <button class="icon-button" type="button" id="exportResult" title="导出月报" aria-label="导出月报">⇩</button>
+            <button class="button top-primary" type="button" data-open-wizard>调整本月目标</button>
           </div>
         </div>
       </header>
 
       <section class="question-view active" id="q1View">
-        <header class="owner-overview-intro">
-          <div>
-            <span class="question-number">项目经营总览</span>
-            <h1>项目经营总览</h1>
-            <p>地方口袋美食食集 · 2026年8月</p>
-          </div>
-          <form class="owner-inline-ai" id="ownerAiForm">
-            <label for="ownerAiPrompt">问项目</label>
-            <input id="ownerAiPrompt" aria-label="输入经营问题" placeholder="本月最需要关注什么？">
-            <button type="submit" id="ownerAiSubmit" title="生成分析" aria-label="生成分析">↑</button>
-          </form>
-          <div class="owner-stage"><i></i><span>当前阶段</span><strong>经营验证准备期</strong></div>
+        <header class="owner-simple-heading">
+          <div><span class="question-number">项目经营总览</span><h1>老板今天只看这三件事</h1><p>地方口袋美食食集 · 2026年8月</p></div>
+          <span class="owner-health"><i></i>需要你决定</span>
         </header>
 
-        <section class="owner-executive-result" aria-label="老板经营结论">
-          <div>
-            <span>AI 经营结论</span>
-            <h2 id="executiveConclusion">正在读取项目资料并形成经营判断。</h2>
-            <small id="ownerAiReason">分析将只使用当前项目已登记的数据。</small>
+        <section class="owner-status-card" aria-label="当前经营结果">
+          <div class="owner-status-copy">
+            <span>现在怎么样</span>
+            <h2 id="executiveConclusion">项目资料和内容已经准备好，但还没有开始第一轮真实测试。</h2>
+            <p id="ownerAiReason">先决定费用、测试范围和参与商户，就可以进入小范围执行。</p>
           </div>
-          <dl>
-            <div><dt>本月进展</dt><dd>内容与项目资料已准备</dd></div>
-            <div><dt>主要风险</dt><dd>真实反馈闭环尚未发生</dd></div>
-            <div><dt>下一节点</dt><dd>获得首条真实商户或到店反馈</dd></div>
-          </dl>
+          <a class="button owner-primary-action" href="#ownerDecisionFocus">处理 3 件待决定事项</a>
         </section>
 
-        <section class="owner-stage-kpis" aria-label="当前阶段关键指标">
-          <article><span>可用内容</span><strong id="contentAssetCount">6</strong><small>项资产</small></article>
-          <article><span>真实采用</span><strong id="ownerAdoptedCount">0</strong><small>项内容</small></article>
-          <article><span>参与商户</span><strong id="ownerMerchantCount">--</strong><small>未采集</small></article>
-          <article><span>招商反馈</span><strong id="ownerLeadCount">--</strong><small>未采集</small></article>
-        </section>
-
-        <section class="owner-analysis-layout">
-          <figure class="owner-chain-chart">
-            <figcaption>
-              <div><span>本月数据</span><h2>经营链路转化</h2></div>
-              <small>从内容准备到真实招商反馈</small>
-            </figcaption>
-            <div class="owner-chart-plot" role="img" aria-label="内容准备、真实采用、商户参与和招商反馈的柱状比较">
-              <article>
-                <strong id="ownerChartContentValue">6</strong>
-                <div><i id="ownerChartContentBar"></i></div>
-                <span>内容准备</span>
-                <small>已有依据</small>
-              </article>
-              <article>
-                <strong id="ownerChartAdoptedValue">0</strong>
-                <div><i id="ownerChartAdoptedBar"></i></div>
-                <span>真实采用</span>
-                <small>待开始</small>
-              </article>
-              <article>
-                <strong id="ownerChartMerchantValue">--</strong>
-                <div><i id="ownerChartMerchantBar"></i></div>
-                <span>商户参与</span>
-                <small>未采集</small>
-              </article>
-              <article>
-                <strong id="ownerChartLeadValue">--</strong>
-                <div><i id="ownerChartLeadBar"></i></div>
-                <span>招商反馈</span>
-                <small>未采集</small>
-              </article>
-            </div>
-          </figure>
-
-          <section class="owner-decision-table">
-            <header><div><span>需要老板决定</span><h2>下一阶段决策</h2></div><strong>3 项</strong></header>
-            <div class="owner-decision-table-head"><span>事项</span><span>系统建议</span><span>状态</span></div>
+        <section class="owner-first-screen-grid">
+          <section class="owner-decision-focus" id="ownerDecisionFocus">
+            <header><div><span>等你决定</span><h2>今天处理这 3 件事</h2></div><strong>3</strong></header>
             <div id="ownerDecisionList">
-              <button type="button"><span>内容费用上限</span><small>先确认本轮可用范围</small><b class="status pending">待确认</b></button>
-              <button type="button"><span>真实测试范围</span><small>选择首批内容与渠道</small><b class="status pending">待确认</b></button>
-              <button type="button"><span>首批商户范围</span><small>确认真实参与名单</small><b class="status pending">待确认</b></button>
+              <button type="button"><i>01</i><span>本轮最多花多少钱</span><small>先定一个费用上限</small><b class="status pending">要做</b></button>
+              <button type="button"><i>02</i><span>先测试哪些内容</span><small>选择首批内容和渠道</small><b class="status pending">要做</b></button>
+              <button type="button"><i>03</i><span>哪些商户先参加</span><small>确认第一批参与名单</small><b class="status pending">要做</b></button>
             </div>
           </section>
+
+          <section class="owner-next-progress" aria-label="距离第一条经营反馈的进度">
+            <header><span>接下来怎么走</span><strong>离第一条反馈还差 3 步</strong></header>
+            <ol>
+              <li class="done"><i>✓</i><span><strong>方案准备</strong><small>已经做好</small></span></li>
+              <li class="current"><i>2</i><span><strong>老板决定</strong><small>现在进行</small></span></li>
+              <li><i>3</i><span><strong>小范围执行</strong><small>下一步</small></span></li>
+              <li><i>4</i><span><strong>记录第一条反馈</strong><small>执行后完成</small></span></li>
+            </ol>
+          </section>
         </section>
+
+        <details class="owner-question-box">
+          <summary>想看更多？直接问这个项目</summary>
+          <form class="owner-inline-ai" id="ownerAiForm">
+            <input id="ownerAiPrompt" aria-label="输入经营问题" placeholder="例如：现在最大的风险是什么？">
+            <button type="submit" id="ownerAiSubmit">提问</button>
+          </form>
+        </details>
+
+        <div class="owner-data-hooks" hidden>
+          <span id="contentAssetCount">6</span><span id="ownerAdoptedCount">0</span><span id="ownerMerchantCount">--</span><span id="ownerLeadCount">--</span>
+        </div>
       </section>
 
       <section class="question-view owner-campaign-view" id="q5View">
@@ -549,13 +517,13 @@
     </div>
   </section>
 
-  <dialog id="feedbackDialog">
-    <form method="dialog" class="feedback-form">
-      <header><span>修改意见</span><h2>填写需要调整的结果</h2><p>只描述期望结果，无需说明生成过程。</p></header>
-      <textarea id="feedbackText" placeholder="例如：招商部分需要更具体；内容方向希望增加家庭客群。"></textarea>
-      <footer><button class="button secondary" value="cancel">取消</button><button class="button primary" id="saveFeedback" value="default">保存意见</button></footer>
-    </form>
-  </dialog>
+      <dialog id="feedbackDialog">
+        <form method="dialog" class="feedback-form">
+          <header><span>留言</span><h2>告诉我们哪里需要调整</h2><p>直接说你希望变成什么样。</p></header>
+          <textarea id="feedbackText" placeholder="例如：招商部分需要更具体；内容方向希望增加家庭客群。"></textarea>
+          <footer><button class="button secondary" value="cancel">取消</button><button class="button primary" id="saveFeedback" value="default">保存留言</button></footer>
+        </form>
+      </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script src="review-data.js"></script>

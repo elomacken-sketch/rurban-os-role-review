@@ -34,12 +34,12 @@ const roleLabels = {
 
 const roleNavigation = {
   owner: {
-    label: "老板经营视图",
+    label: "老板工作台",
     items: [
       { key: "owner-overview", question: "q1", title: "项目经营总览", subtitle: "阶段、重点与风险" },
-      { key: "owner-campaign", question: "q5", title: "月度战役与审批", subtitle: "Brief、预算与优先级" },
+      { key: "owner-campaign", question: "q5", title: "月度战役与审批", subtitle: "目标、预算与优先级" },
       { key: "owner-progress", question: "q6", title: "执行与协同进展", subtitle: "运营、商户与招商" },
-      { key: "owner-value", question: "q4", title: "经营价值与趋势", subtitle: "指标、证据与归因" },
+      { key: "owner-value", question: "q4", title: "经营价值与趋势", subtitle: "结果、数据与趋势" },
       { key: "owner-decisions", question: "q7", title: "下月决策与月报", subtitle: "建议、审批与导出" },
     ],
   },
@@ -137,10 +137,10 @@ const briefFallback = {
 };
 
 const ownerStageConclusions = {
-  overall_plan: "当前经营链路停留在内容准备：已有内容资产，但真实采用、商户参与和招商反馈尚未形成。",
-  content_growth: "内容资产已经准备，但尚无真实采用和到店反馈，暂不能判断内容增长效果。",
-  merchant_collaboration: "商户协同尚未开始：参与名单、提交材料和现场反馈均未形成。",
-  merchant_attraction: "招商尚未进入真实跟进：当前只有候选画像，没有真实品牌线索和反馈。",
+  overall_plan: "项目资料和内容已经准备好，但还没有开始第一轮真实测试。",
+  content_growth: "内容已经准备好，下一步要先发布一小批，再看顾客是否愿意到店。",
+  merchant_collaboration: "商户任务已经准备好，下一步要先确定第一批参与商户。",
+  merchant_attraction: "招商材料已经准备好，下一步要先补充真实品牌名单并开始接触。",
 };
 
 function $(selector) {
@@ -457,10 +457,10 @@ function setOwnerChart(id, value, height) {
 }
 
 function ownerDecisionSuggestion(item) {
-  if (/费用|预算/.test(item)) return "先确认本轮可用范围";
-  if (/内容|测试|渠道/.test(item)) return "选择首批内容与渠道";
-  if (/商户/.test(item)) return "确认真实参与名单";
-  return "确认后进入下一阶段";
+  if (/费用|预算/.test(item)) return { title: "本轮最多花多少钱", help: "先定一个费用上限" };
+  if (/主题|内容|测试|渠道/.test(item)) return { title: "先测试哪些内容", help: "选择首批内容和渠道" };
+  if (/招商|商户/.test(item)) return { title: "哪些商户先参加", help: "确认第一批参与名单" };
+  return { title: item, help: "决定后进入下一步" };
 }
 
 function ownerAnalysisResponse(prompt) {
@@ -471,7 +471,7 @@ function ownerAnalysisResponse(prompt) {
   const leadCount = $("#ownerLeadCount")?.textContent || "--";
 
   if (/异常|风险|问题/.test(question)) {
-    return "当前最大的异常是经营链路停留在内容准备：已有内容资产，但真实采用、商户参与和招商反馈尚未形成。";
+    return "现在最大的风险是准备工作已经完成，但还没有开始小范围执行，所以暂时看不到顾客和商户的真实反应。";
   }
   if (/决策|决定|拍板/.test(question)) {
     return "现在只需要确认三件事：内容费用上限、真实内容测试范围和首批参与商户；其余事项暂不应扩大。";
@@ -479,7 +479,7 @@ function ownerAnalysisResponse(prompt) {
   if (/月报|报告|总结/.test(question)) {
     return "本月已完成内容与项目资料准备，但真实经营闭环尚未发生，因此月报应聚焦准备结果、数据缺口和下一阶段决策。";
   }
-  return `当前有 ${contentCount} 项可用内容、${adoptedCount} 项真实采用；参与商户 ${merchantCount}、招商反馈 ${leadCount}。下一步应先获得首条真实商户或到店反馈。`;
+  return `目前有 ${contentCount} 项内容可用，${adoptedCount} 项已经投入测试。下一步先完成小范围执行，再记录第一条顾客或商户反馈。`;
 }
 
 function generateOwnerAnalysis(prompt) {
@@ -544,7 +544,7 @@ function renderOwnerDashboard(delivery) {
   setOwnerChart("ownerChartAdopted", adoptedCount, Number(contentCount) ? (Number(adoptedCount) / Number(contentCount)) * 100 : 0);
   setOwnerChart("ownerChartMerchant", merchantKnown ? merchantCount : "--", merchantKnown ? Number(merchantCount) * 20 : 0);
   setOwnerChart("ownerChartLead", leadKnown ? leadCount : "--", leadKnown ? Number(leadCount) * 20 : 0);
-  $("#ownerAiReason").textContent = `依据：${contentCount} 项可用内容、${adoptedCount} 项真实采用；商户与招商反馈${merchantKnown || leadKnown ? "部分已有记录" : "尚未采集"}。`;
+  $("#ownerAiReason").textContent = `目前有 ${contentCount} 项内容可用，${adoptedCount} 项已经投入测试；下一步先完成小范围执行，再记录顾客或商户反馈。`;
 
   const approvalItems = String(itemByLabel(decisionSection, "批准事项")?.value || "")
     .split(/[、，,]/)
@@ -553,12 +553,14 @@ function renderOwnerDashboard(delivery) {
     .slice(0, 3);
   if (approvalItems.length) {
     const decisions = approvalItems.map((item, index) => {
+      const display = ownerDecisionSuggestion(item);
       const button = document.createElement("button");
       button.type = "button";
       button.append(
-        create("span", "", item),
-        create("small", "", ownerDecisionSuggestion(item)),
-        create("b", "status pending", stateLabels.pending),
+        create("i", "", String(index + 1).padStart(2, "0")),
+        create("span", "", display.title),
+        create("small", "", display.help),
+        create("b", "status pending", "要做"),
       );
       button.addEventListener("click", () => showToast("已打开该决策事项"));
       return button;
