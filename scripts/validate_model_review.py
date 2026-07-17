@@ -7,7 +7,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "review-manifest.json"
 MODEL_REVIEW = ROOT / "MODEL_REVIEW.md"
-EXPECTED_SCREEN_COUNT = 16
+VISUAL_PDF = ROOT / "output" / "pdf" / "rurban-os-model-review.pdf"
+EXPECTED_SCREEN_COUNT = 19
+EXPECTED_INTERACTION_IDS = {"owner-metric-detail", "owner-weekly-report", "owner-ai-answer"}
 
 
 def fail(message):
@@ -19,6 +21,8 @@ def main():
         fail("review-manifest.json is missing")
     if not MODEL_REVIEW.is_file():
         fail("MODEL_REVIEW.md is missing")
+    if not VISUAL_PDF.is_file() or VISUAL_PDF.stat().st_size < 1_000_000:
+        fail("visual interaction PDF is missing or unexpectedly small")
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     screens = manifest.get("screens", [])
@@ -38,6 +42,11 @@ def main():
         if screenshot not in review_text:
             fail(f"MODEL_REVIEW.md does not link {screenshot}")
 
+    if not EXPECTED_INTERACTION_IDS.issubset(seen_ids):
+        fail("owner interaction evidence is incomplete")
+    if str(VISUAL_PDF.relative_to(ROOT)) not in review_text:
+        fail("MODEL_REVIEW.md does not link the visual interaction PDF")
+
     forbidden = ["127.0.0.1", "localhost", "trycloudflare.com"]
     for value in forbidden:
         if value in review_text:
@@ -48,7 +57,7 @@ def main():
         if secret_pattern.search(path.read_text(encoding="utf-8")):
             fail(f"possible credential found in {path.name}")
 
-    print(f"PASS: {len(screens)} screens, stable model entry, no local or temporary URLs")
+    print(f"PASS: {len(screens)} screens, visual interaction PDF, stable model entry")
 
 
 if __name__ == "__main__":

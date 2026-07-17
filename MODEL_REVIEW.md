@@ -21,11 +21,13 @@
 ## 固定入口
 
 - **本页是模型评审的唯一必读入口。**
+- **只能静态抓取时：直接打开 [视觉与交互 PDF](output/pdf/rurban-os-model-review.pdf)，不要访问 `/app/`。**
+- [PDF 原始文件固定地址](https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf)
 - [模型可读静态总览](https://elomacken-sketch.github.io/rurban-os-role-review/)
-- [浏览器只读交互版](https://elomacken-sketch.github.io/rurban-os-role-review/app/)
+- [有浏览器能力时打开只读交互版](https://elomacken-sketch.github.io/rurban-os-role-review/app/)
 - [结构化页面与交互清单](review-manifest.json)
 
-交互版只是补充。不能执行 JavaScript 或不能点击时，直接看下面 16 个固定页面状态。
+交互版只提供给真正具备浏览器点击能力的模型。静态抓取工具本身不能执行按钮，因此下面同时固定展示 19 个页面与关键点击后状态；视觉细节集中在 PDF 中。
 
 ## 一、老板视图
 
@@ -40,6 +42,30 @@
 主要操作：点击指标查看原因，展开风险和决策依据，追问原因、趋势或建议，打开周报和月报。
 
 ![老板-经营脉搏单页](screenshots/views/owner-overview.png)
+
+### 2. 点击指标后的详情
+
+操作：点击“已投入测试”。
+
+结果：打开实际、目标、差距、趋势、发生了什么、主要原因和建议动作。
+
+![老板-指标详情](screenshots/views/owner-metric-detail.png)
+
+### 3. 点击周报后的简报
+
+操作：点击“8月第2周”。
+
+结果：打开一句话结论、本周进展、当前问题和下一步。
+
+![老板-周报简报](screenshots/views/owner-weekly-report.png)
+
+### 4. 点击问 AI 后的回答
+
+操作：点击“为什么还没有开始验证？”。
+
+结果：显示基于当前模拟指标的原因解释，不调用真实 AI。
+
+![老板-AI追问结果](screenshots/views/owner-ai-answer.png)
 
 ## 二、运营视图
 
@@ -171,4 +197,5 @@
 - 当前不运行真实 AI，不连接 API，不写数据库。
 - 当前不执行招商、发布、任务派发或对外提交。
 - 评价重点是信息架构、视觉、理解成本和操作路径。
-- 外部模型不能点击网页时，截图和本页文字就是完整评审证据，不应要求临时隧道或本地地址。
+- 外部模型不能点击网页时，PDF、固定状态截图和本页文字就是完整评审证据，不应要求临时隧道或本地地址。
+- “无法点击”只说明评审模型没有浏览器能力，不应直接判定为产品交互失败。

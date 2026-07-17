@@ -6,13 +6,15 @@
 
 **[打开模型专用完整评审文档](MODEL_REVIEW.md)**
 
-模型不能运行 JavaScript 或不能点击网页时，仍可在该文档中看到 16 个固定页面状态、全部主要按钮及点击结果。不要只把 `/app/` 交给外部模型，也不要再发送本地地址或临时隧道。
+模型不能运行 JavaScript 或不能点击网页时，仍可在该文档和 PDF 中看到 19 个固定页面状态、全部主要按钮及点击结果。不要只把 `/app/` 交给外部模型，也不要再发送本地地址或临时隧道。
 
 ## 评审入口
 
 - [模型专用完整评审文档](MODEL_REVIEW.md)
+- [模型视觉与交互 PDF](output/pdf/rurban-os-model-review.pdf)
+- [PDF 原始文件固定地址](https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf)
 - [模型可读静态总览](https://elomacken-sketch.github.io/rurban-os-role-review/)
-- [浏览器只读交互界面](https://elomacken-sketch.github.io/rurban-os-role-review/app/)
+- [有浏览器能力时使用只读交互界面](https://elomacken-sketch.github.io/rurban-os-role-review/app/)
 - [结构化页面与交互清单](review-manifest.json)
 
 ## 四角色首页截图

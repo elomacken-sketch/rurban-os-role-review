@@ -5,6 +5,8 @@
   "mode": "public_read_only",
   "primary_entry": "MODEL_REVIEW.md",
   "interactive_entry": "https://elomacken-sketch.github.io/rurban-os-role-review/app/",
+  "static_visual_entry": "output/pdf/rurban-os-model-review.pdf",
+  "static_visual_raw_entry": "https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf",
   "data_policy": {
     "database_connected": false,
     "api_connected": false,
@@ -14,6 +16,9 @@
   },
   "screens": [
     {"id":"owner-overview","role":"owner","label":"经营脉搏单页","screenshot":"screenshots/views/owner-overview.png","actions":["查看指标原因","展开风险与决策","问 AI","查看周报或月报"]},
+    {"id":"owner-metric-detail","role":"owner","label":"指标详情","screenshot":"screenshots/views/owner-metric-detail.png","actions":["点击已投入测试","关闭指标详情"]},
+    {"id":"owner-weekly-report","role":"owner","label":"周报简报","screenshot":"screenshots/views/owner-weekly-report.png","actions":["点击周报","关闭简报"]},
+    {"id":"owner-ai-answer","role":"owner","label":"AI 追问结果","screenshot":"screenshots/views/owner-ai-answer.png","actions":["点击建议问题","查看模拟回答"]},
     {"id":"operations-today","role":"operations","label":"今日工作台","screenshot":"screenshots/views/operations-today.png","actions":["打开任务","标记完成","查看全部任务"]},
     {"id":"operations-calendar","role":"operations","label":"内容日历与活动","screenshot":"screenshots/views/operations-calendar.png","actions":["切换筛选","打开内容"]},
     {"id":"operations-content","role":"operations","label":"内容生产","screenshot":"screenshots/views/operations-content.png","actions":["切换平台","查看完整文案"]},
