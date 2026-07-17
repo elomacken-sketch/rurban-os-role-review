@@ -21,6 +21,8 @@
 ## 固定入口
 
 - **本页是模型评审的唯一必读入口。**
+- [AI 原生首页实验页](https://elomacken-sketch.github.io/rurban-os-role-review/home/)
+- [AI 原生首页三角色静态说明](AI_HOME_REVIEW.md)
 - **只能静态抓取时：直接打开 [视觉与交互 PDF](output/pdf/rurban-os-model-review.pdf)，不要访问 `/app/`。**
 - [PDF 原始文件固定地址](https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf)
 - [模型可读静态总览](https://elomacken-sketch.github.io/rurban-os-role-review/)
@@ -29,6 +31,15 @@
 - [全站原文案与新文案对照表](PLAIN_LANGUAGE_COPY.md)
 
 交互版只提供给真正具备浏览器点击能力的模型。静态抓取工具本身不能执行按钮，因此下面同时固定展示 19 个页面与关键点击后状态；视觉细节集中在 PDF 中。
+
+## 零、AI 原生首页实验
+
+这是新增的独立首页，不替换下面的四角色高级详情页。首页没有左侧导航，只保留当前项目、最重要行动、项目动态和一个输入框。商户不进入内部首页。
+
+- [老板首页截图](screenshots/ai-home/owner.png)
+- [运营首页截图](screenshots/ai-home/operations.png)
+- [招商首页截图](screenshots/ai-home/leasing.png)
+- [完整实验说明](AI_HOME_REVIEW.md)
 
 ## 一、老板视图
 

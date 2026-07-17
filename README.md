@@ -10,6 +10,8 @@
 
 ## 评审入口
 
+- [AI 原生首页实验页](https://elomacken-sketch.github.io/rurban-os-role-review/home/)
+- [AI 原生首页静态评审说明](AI_HOME_REVIEW.md)
 - [模型专用完整评审文档](MODEL_REVIEW.md)
 - [模型视觉与交互 PDF](output/pdf/rurban-os-model-review.pdf)
 - [PDF 原始文件固定地址](https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf)
@@ -24,6 +26,12 @@
 - [运营视图](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/operations.png)
 - [招商视图](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/leasing.png)
 - [商户视图](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/merchant.png)
+
+## AI 原生首页截图
+
+- [老板首页](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/ai-home/owner.png)
+- [运营首页](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/ai-home/operations.png)
+- [招商首页](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/ai-home/leasing.png)
 
 ## 本轮评审重点
 

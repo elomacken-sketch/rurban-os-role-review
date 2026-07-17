@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>地方口袋｜AI 项目首页</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="ai-home.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="返回项目首页">
+      <span class="brand-mark">地方<br>口袋</span>
+      <span class="brand-copy"><strong>RURBAN OS</strong><small>AI 项目首页</small></span>
+    </a>
+
+    <div class="project-context" aria-label="当前项目和状态">
+      <img src="assets/place-market.jpg" alt="地方口袋美食食集现场">
+      <span><small>当前项目</small><strong>地方口袋美食食集</strong></span>
+      <b><i></i>准备开始第一轮测试</b>
+      <em>2026年8月 · 演示数据</em>
+    </div>
+
+    <div class="header-actions">
+      <div class="role-switch" aria-label="选择你要查看的内容">
+        <button class="active" type="button" data-role="owner">老板</button>
+        <button type="button" data-role="operations">运营</button>
+        <button type="button" data-role="leasing">招商</button>
+      </div>
+      <a class="detail-link" href="../app/">查看详细页面 <span>↗</span></a>
+    </div>
+  </header>
+
+  <main class="home-main">
+    <section class="priority-card" aria-labelledby="priorityTitle">
+      <div class="priority-content">
+        <span class="section-label"><i></i>现在最重要</span>
+        <h1 id="priorityTitle">先决定测试内容、费用上限和首批商户</h1>
+        <p id="prioritySummary">这三件事没有确定，第一轮内容测试就无法开始，也看不到顾客、商户和品牌的实际反应。</p>
+        <div class="priority-facts" id="priorityFacts">
+          <span><small>当前</small><strong>0 项内容开始测试</strong></span>
+          <span><small>影响</small><strong>暂时无法判断有没有效果</strong></span>
+          <span><small>建议完成时间</small><strong>本周内</strong></span>
+        </div>
+        <button class="priority-action" type="button" id="priorityAction">查看并决定这 3 件事</button>
+      </div>
+      <div class="priority-visual" aria-label="当前进度：准备工作完成，测试尚未开始">
+        <span>本月推进情况</span>
+        <strong><b id="priorityProgress">42</b><small>%</small></strong>
+        <div class="progress-track"><i id="priorityProgressBar"></i></div>
+        <ol id="prioritySteps">
+          <li class="done"><i></i><span>资料和内容已准备</span><b>完成</b></li>
+          <li class="current"><i></i><span>确定第一轮测试</span><b>现在</b></li>
+          <li><i></i><span>记录实际反馈</span><b>下一步</b></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="stream-section" aria-labelledby="streamTitle">
+      <header class="stream-heading">
+        <div><span>项目动态</span><h2 id="streamTitle">刚刚发生了什么？</h2></div>
+        <p id="streamIntro">先看结果和需要决定的事，详细依据点开后再看。</p>
+      </header>
+      <div class="stream" id="activityStream" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <form class="ai-composer" id="aiComposer">
+    <div class="composer-inner">
+      <span class="ai-badge">AI</span>
+      <label for="aiPrompt"><strong>你今天想推动什么？</strong><small id="composerHint">例如：我想让第一轮测试本周开始</small></label>
+      <input id="aiPrompt" autocomplete="off" placeholder="说一句你想完成的事……">
+      <button type="submit">整理下一步</button>
+    </div>
+  </form>
+
+  <dialog class="detail-dialog" id="detailDialog">
+    <form method="dialog"><button class="dialog-close" type="submit" aria-label="关闭详情">×</button></form>
+    <span id="dialogType">结果</span>
+    <h2 id="dialogTitle">详情</h2>
+    <p id="dialogSummary"></p>
+    <div id="dialogBody"></div>
+    <footer><button type="button" id="dialogConfirm">知道了，返回首页</button></footer>
+  </dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="ai-home.js"></script>
+</body>
+</html>

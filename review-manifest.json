@@ -7,6 +7,14 @@
   "interactive_entry": "https://elomacken-sketch.github.io/rurban-os-role-review/app/",
   "static_visual_entry": "output/pdf/rurban-os-model-review.pdf",
   "static_visual_raw_entry": "https://raw.githubusercontent.com/elomacken-sketch/rurban-os-role-review/main/output/pdf/rurban-os-model-review.pdf",
+  "experimental_home": {
+    "entry": "https://elomacken-sketch.github.io/rurban-os-role-review/home/",
+    "static_review": "AI_HOME_REVIEW.md",
+    "roles": ["owner", "operations", "leasing"],
+    "card_types": ["result", "decision", "achievement", "task"],
+    "merchant_entry": false,
+    "backend_connected": false
+  },
   "data_policy": {
     "database_connected": false,
     "api_connected": false,
