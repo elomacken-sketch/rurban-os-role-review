@@ -4,38 +4,38 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>地方口袋｜项目经营台</title>
-  <link rel="stylesheet" href="client-preview.css?v=20260717-pulse">
+  <link rel="stylesheet" href="client-preview.css?v=20260717-language">
 </head>
 <body data-view="q1">
   <div class="review-mode-badge" role="status">外部评审只读版 · 操作不保存</div>
   <div class="app-shell">
     <aside class="sidebar">
-      <a class="brand" href="./" aria-label="地方口袋项目经营台">
+      <a class="brand" href="./" aria-label="返回地方口袋项目首页">
         <span class="brand-mark">地方<br>口袋</span>
         <span class="brand-name"><strong>RURBAN OS</strong><small>项目经营台</small></span>
       </a>
 
-      <button class="project-switcher" type="button" title="切换项目">
+      <button class="project-switcher" type="button" title="选择另一个项目">
         <span>当前项目</span>
         <strong id="sideProject">地方口袋美食食集</strong>
         <small><i></i><b id="sideMonth">2026年8月</b><em>⌄</em></small>
       </button>
 
-      <nav class="question-nav" id="roleNavigation" aria-label="老板经营栏目">
-        <span class="nav-label">老板端</span>
+      <nav class="question-nav" id="roleNavigation" aria-label="老板页面">
+        <span class="nav-label">老板页面</span>
         <button class="question-link active" type="button" data-question="q1">
-          <b>01</b><span><strong>经营脉搏</strong><small>结果、风险与决策</small></span>
+          <b>01</b><span><strong>这个月项目怎么样？</strong><small>结果、问题和要决定的事</small></span>
         </button>
       </nav>
 
       <div class="sidebar-actions">
-        <button class="button sidebar-primary" type="button" data-open-wizard>调整本月目标</button>
-        <button class="text-action" type="button" id="openFeedback">留言</button>
+        <button class="button sidebar-primary" type="button" data-open-wizard>填写本月变化</button>
+        <button class="text-action" type="button" id="openFeedback">提出修改意见</button>
       </div>
 
       <footer>
-        <span>数据状态</span>
-        <strong><i></i>部分待补充</strong>
+        <span>资料情况</span>
+        <strong><i></i>还有资料没填</strong>
       </footer>
     </aside>
 
@@ -44,20 +44,20 @@
       <header class="topbar">
         <div class="top-context">
           <div><span>项目</span><strong id="topProject">地方口袋美食食集</strong></div>
-          <div><span>执行月份</span><strong id="topMonth">2026年8月</strong></div>
+          <div><span>查看月份</span><strong id="topMonth">2026年8月</strong></div>
         </div>
         <strong class="top-wordmark">LOCAL POCKET</strong>
         <div class="top-utility">
-          <div class="role-switch" aria-label="角色视图">
-            <span>当前视图</span>
+          <div class="role-switch" aria-label="选择角色页面">
+            <span>你正在看</span>
             <button class="active" type="button" data-role="owner">老板</button>
             <button type="button" data-role="operations">运营</button>
             <button type="button" data-role="leasing">招商</button>
             <button type="button" data-role="merchant">商户</button>
           </div>
           <div class="top-actions">
-            <button class="icon-button" type="button" id="exportResult" title="导出月报" aria-label="导出月报">⇩</button>
-            <button class="button top-primary" type="button" data-open-wizard>调整本月目标</button>
+            <button class="icon-button" type="button" id="exportResult" title="下载本月报告" aria-label="下载本月报告">⇩</button>
+            <button class="button top-primary" type="button" data-open-wizard>填写本月变化</button>
           </div>
         </div>
       </header>
@@ -66,35 +66,35 @@
         <div class="pulse-owner-page">
           <header class="pulse-page-heading">
             <div>
-              <span>经营脉搏</span>
+              <span>这个月项目怎么样？</span>
               <h1>地方口袋美食食集</h1>
               <p>2026年8月 · 更新至 8月16日</p>
             </div>
-            <div class="pulse-report-entry" aria-label="经营简报">
-              <button type="button" data-owner-report="weekly"><span>周报</span><strong>8月第2周</strong><small>查看简报</small></button>
-              <button type="button" data-owner-report="monthly"><span>月报</span><strong>2026年8月</strong><small>查看简报</small></button>
+            <div class="pulse-report-entry" aria-label="项目报告">
+              <button type="button" data-owner-report="weekly"><span>本周情况</span><strong>8月第2周</strong><small>打开本周报告</small></button>
+              <button type="button" data-owner-report="monthly"><span>本月情况</span><strong>2026年8月</strong><small>打开本月报告</small></button>
             </div>
           </header>
 
-          <section class="pulse-ai-summary" aria-label="AI经营摘要">
-            <header><span><i>AI</i>经营摘要</span><small>基于当前经营记录</small></header>
+          <section class="pulse-ai-summary" aria-label="AI项目总结">
+            <header><span><i>AI</i>项目总结</span><small>根据目前填写的信息</small></header>
             <div class="pulse-summary-lead">
               <b><i></i>需要关注</b>
-              <h2 id="executiveConclusion">内容准备已经完成，但经营验证还没有真正开始。</h2>
+              <h2 id="executiveConclusion">内容已经准备好，但还没有开始第一轮小范围测试。</h2>
             </div>
             <div class="pulse-summary-grid">
-              <article><span>发生了什么</span><p>已有 6 项内容可以使用，但还没有内容投入测试，商户参与和招商线索也没有登记。</p></article>
-              <article><span>为什么</span><p id="ownerAiReason">首批测试范围、费用上限和参与商户尚未确定，后续执行因此没有启动。</p></article>
-              <article><span>建议关注</span><p id="ownerAiFocus">先确定测试内容、费用上限和首批商户，再用一周完成小范围验证。</p></article>
+              <article><span>发生了什么</span><p>已有 6 项内容可以使用，但还没有开始测试，也还没有填写参与商户和要联系的品牌。</p></article>
+              <article><span>为什么</span><p id="ownerAiReason">要测试哪些内容、最多花多少钱、哪些商户先参加，这三件事还没有确定。</p></article>
+              <article><span>下一步做什么</span><p id="ownerAiFocus">先确定测试内容、费用上限和首批商户，再用一周做一次小范围测试。</p></article>
             </div>
             <details class="pulse-summary-evidence">
-              <summary>查看判断依据</summary>
-              <div><p><b>内容准备：</b>6 项可用内容，0 项投入测试。</p><p><b>协同准备：</b>参与商户、真实品牌名单和现场反馈尚未登记。</p><p><b>判断边界：</b>当前只能判断准备度，不能判断内容是否带来到店、消费或招商效果。</p></div>
+              <summary>查看为什么这样判断</summary>
+              <div><p><b>内容：</b>6 项可以使用，0 项开始测试。</p><p><b>商户和品牌：</b>参与商户、具体品牌名称和现场反馈还没有填写。</p><p><b>目前还不能判断：</b>没有实际测试，所以还不能判断内容有没有带来到店、消费或品牌合作。</p></div>
             </details>
           </section>
 
           <section class="pulse-section pulse-metrics" aria-labelledby="pulseMetricsTitle">
-            <header><div><span>本月核心指标</span><h2 id="pulseMetricsTitle">结果、差距与趋势</h2></div><small>点击指标查看详细原因</small></header>
+            <header><div><span>本月目标完成情况</span><h2 id="pulseMetricsTitle">哪些目标还没完成？</h2></div><small>点击每项查看原因和下一步</small></header>
             <div class="pulse-metric-grid">
               <button class="pulse-metric-card healthy" type="button" data-owner-metric="content">
                 <header><span>已准备内容</span><b>接近目标</b></header>
@@ -102,7 +102,7 @@
                 <strong><span id="ownerMetricContentActual">6</span><small>项</small></strong>
                 <div class="pulse-metric-facts"><span><small>目标</small><b>8</b></span><span><small>差距</small><b id="ownerMetricContentGap">-2</b></span><span><small>趋势</small><b class="positive">↑ 2</b></span></div>
                 <div class="pulse-sparkline positive" aria-label="内容数量上升"><i style="--h:30"></i><i style="--h:40"></i><i style="--h:40"></i><i style="--h:55"></i><i style="--h:72"></i><i style="--h:86"></i></div>
-                <footer>内容供给已具备，下一步是投入测试。</footer>
+                <footer>内容数量已经接近目标，下一步是选出 3 项开始测试。</footer>
               </button>
               <button class="pulse-metric-card critical" type="button" data-owner-metric="testing">
                 <header><span>已投入测试</span><b>低于目标</b></header>
@@ -110,67 +110,67 @@
                 <strong><span id="ownerMetricTestingActual">0</span><small>项</small></strong>
                 <div class="pulse-metric-facts"><span><small>目标</small><b>3</b></span><span><small>差距</small><b id="ownerMetricTestingGap">-3</b></span><span><small>趋势</small><b class="negative">→ 0</b></span></div>
                 <div class="pulse-sparkline critical" aria-label="测试数量没有变化"><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i></div>
-                <footer>没有测试，就无法形成真实经营反馈。</footer>
+                <footer>还没有开始测试，所以暂时看不到顾客和商户的反应。</footer>
               </button>
               <button class="pulse-metric-card warning" type="button" data-owner-metric="merchants">
-                <header><span>已登记参与商户</span><b>待启动</b></header>
+                <header><span>已经确定参加的商户</span><b>还没开始</b></header>
                 <small class="pulse-actual-label">实际</small>
                 <strong><span id="ownerMetricMerchantActual">0</span><small>家</small></strong>
                 <div class="pulse-metric-facts"><span><small>目标</small><b>5</b></span><span><small>差距</small><b id="ownerMetricMerchantGap">-5</b></span><span><small>趋势</small><b class="negative">→ 0</b></span></div>
                 <div class="pulse-sparkline warning" aria-label="参与商户没有变化"><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i></div>
-                <footer>首批商户未确定，现场协同尚未开始。</footer>
+                <footer>第一批商户还没确定，所以现场准备无法开始。</footer>
               </button>
               <button class="pulse-metric-card warning" type="button" data-owner-metric="leads">
-                <header><span>已登记招商线索</span><b>待启动</b></header>
+                <header><span>已经联系的品牌</span><b>还没开始</b></header>
                 <small class="pulse-actual-label">实际</small>
                 <strong><span id="ownerMetricLeadActual">0</span><small>条</small></strong>
                 <div class="pulse-metric-facts"><span><small>目标</small><b>3</b></span><span><small>差距</small><b id="ownerMetricLeadGap">-3</b></span><span><small>趋势</small><b class="negative">→ 0</b></span></div>
-                <div class="pulse-sparkline warning" aria-label="招商线索没有变化"><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i></div>
-                <footer>需要先补真实品牌名单，再开始接触。</footer>
+                <div class="pulse-sparkline warning" aria-label="联系品牌数量没有变化"><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i><i style="--h:12"></i></div>
+                <footer>需要先填写具体品牌名称，再开始联系。</footer>
               </button>
             </div>
           </section>
 
           <div class="pulse-lower-grid">
             <section class="pulse-panel pulse-risk-panel" aria-labelledby="ownerRiskTitle">
-              <header><div><span>异常与风险</span><h2 id="ownerRiskTitle">最需要关注的 3 个问题</h2></div><strong>3</strong></header>
+              <header><div><span>现在最需要解决什么？</span><h2 id="ownerRiskTitle">最需要处理的 3 个问题</h2></div><strong>3</strong></header>
               <details class="pulse-risk-item critical" open>
-                <summary><span><i></i><strong>经营验证尚未开始</strong><small>已投入测试仍为 0 项</small></span><b>高</b></summary>
-                <p>影响：当前无法判断内容是否带来到店、消费或招商变化。建议先启动 3 项小范围内容测试。</p>
+                <summary><span><i></i><strong>第一轮测试还没开始</strong><small>开始测试的内容仍为 0 项</small></span><b>先处理</b></summary>
+                <p>影响：现在还不知道内容能不能带来到店、消费或品牌合作。下一步先测试 3 项内容。</p>
               </details>
               <details class="pulse-risk-item critical">
-                <summary><span><i></i><strong>首批参与商户未确定</strong><small>商户任务无法进入执行</small></span><b>高</b></summary>
-                <p>影响：产品、图片和现场配合信息无法补齐，内容与活动都无法落到真实经营动作。</p>
+                <summary><span><i></i><strong>第一批参加的商户还没确定</strong><small>商户还不能开始提交资料</small></span><b>先处理</b></summary>
+                <p>影响：产品、图片和现场配合信息还收不齐，内容和活动也无法真正开始。</p>
               </details>
               <details class="pulse-risk-item warning">
-                <summary><span><i></i><strong>招商线索仍为空</strong><small>已有画像，尚无真实品牌名单</small></span><b>中</b></summary>
-                <p>影响：招商材料只能停留在通用版本，暂时不能形成针对具体品牌的匹配理由和跟进记录。</p>
+                <summary><span><i></i><strong>还没有开始联系品牌</strong><small>知道适合哪类品牌，但没有具体名称</small></span><b>随后处理</b></summary>
+                <p>影响：现在只能使用通用介绍，暂时不能针对具体品牌说明为什么适合，也不能记录联系进展。</p>
               </details>
             </section>
 
             <section class="pulse-panel pulse-decision-panel" id="ownerDecisionFocus" aria-labelledby="ownerDecisionTitle">
-              <header><div><span>需要你决定</span><h2 id="ownerDecisionTitle">本周最多处理 3 件事</h2></div><strong>3</strong></header>
+              <header><div><span>需要你决定什么？</span><h2 id="ownerDecisionTitle">本周只需要决定 3 件事</h2></div><strong>3</strong></header>
               <div id="ownerDecisionList">
-                <details class="pulse-decision" open><summary><i>01</i><strong id="ownerDecisionTitle1">先测试哪些内容</strong><b>待决定</b></summary><div><span>建议</span><p>先测试地方食物人物故事和小红书内容，用现有素材快速获得第一轮反馈。</p><small>依据：已有 6 项内容可用，但投入测试为 0。</small></div></details>
-                <details class="pulse-decision"><summary><i>02</i><strong id="ownerDecisionTitle2">本轮最多花多少钱</strong><b>待决定</b></summary><div><span>建议</span><p>先采用 5,000 元以内的小范围验证，不在没有反馈前扩大投入。</p><small>依据：商户、到店和招商反馈尚未形成。</small></div></details>
-                <details class="pulse-decision"><summary><i>03</i><strong id="ownerDecisionTitle3">哪些商户先参加</strong><b>待决定</b></summary><div><span>建议</span><p>先选 2–3 家有真实产品、人物故事和现场配合能力的地方食物商户。</p><small>依据：商户参与是内容测试和现场反馈的共同前提。</small></div></details>
+                <details class="pulse-decision" open><summary><i>01</i><strong id="ownerDecisionTitle1">先测试哪些内容</strong><b>要决定</b></summary><div><span>建议</span><p>先测试地方食物人物故事和小红书内容，用已有图片和文字尽快获得第一轮反馈。</p><small>原因：已有 6 项内容可以使用，但开始测试的仍为 0。</small></div></details>
+                <details class="pulse-decision"><summary><i>02</i><strong id="ownerDecisionTitle2">本轮最多花多少钱</strong><b>要决定</b></summary><div><span>建议</span><p>先用 5,000 元以内做一次小范围测试，没有反馈前先不扩大投入。</p><small>原因：目前还没有商户、到店和品牌联系结果。</small></div></details>
+                <details class="pulse-decision"><summary><i>03</i><strong id="ownerDecisionTitle3">哪些商户先参加</strong><b>要决定</b></summary><div><span>建议</span><p>先选 2–3 家有确定产品、人物故事和现场配合能力的地方食物商户。</p><small>原因：先确定参加商户，才能测试内容并获得现场反馈。</small></div></details>
               </div>
             </section>
           </div>
 
           <section class="pulse-ask" aria-labelledby="ownerAskTitle">
-            <div class="pulse-ask-heading"><span>问 AI</span><h2 id="ownerAskTitle">继续追问原因、趋势和建议</h2><p>回答只基于当前项目的经营指标和已登记信息。</p></div>
+            <div class="pulse-ask-heading"><span>问 AI</span><h2 id="ownerAskTitle">还有哪里不清楚？直接问 AI</h2><p>回答只使用这个项目目前已经填写的信息。</p></div>
             <div class="pulse-ask-workspace">
               <div class="pulse-suggested-questions">
-                <button type="button" data-owner-prompt="为什么经营验证还没有开始？">为什么还没有开始验证？</button>
-                <button type="button" data-owner-prompt="现在哪个指标最需要优先改善？">哪个指标最需要关注？</button>
+                <button type="button" data-owner-prompt="为什么第一轮测试还没有开始？">为什么还没有开始测试？</button>
+                <button type="button" data-owner-prompt="现在哪个目标最需要先处理？">哪个目标最需要先处理？</button>
                 <button type="button" data-owner-prompt="下周最应该做什么？">下周应该先做什么？</button>
               </div>
               <form class="pulse-ai-form" id="ownerAiForm">
-                <input id="ownerAiPrompt" aria-label="输入经营问题" placeholder="追问原因、趋势或下一步建议">
-                <button type="submit" id="ownerAiSubmit">提问</button>
+                <input id="ownerAiPrompt" aria-label="输入你想问的问题" placeholder="例如：下周应该先做什么？">
+                <button type="submit" id="ownerAiSubmit">查看回答</button>
               </form>
-              <output class="pulse-ai-answer" id="ownerAiAnswer"><span>AI 回答</span><p>当前最重要的不是扩大内容数量，而是把已有内容投入小范围测试，并记录第一条真实反馈。</p></output>
+              <output class="pulse-ai-answer" id="ownerAiAnswer"><span>AI 回答</span><p>当前最重要的是先测试已有内容，并记录第一条顾客或商户反馈。</p></output>
             </div>
           </section>
         </div>
@@ -194,59 +194,59 @@
 
       <section class="question-view" id="q2View">
         <header class="page-intro">
-          <div><span class="question-number">运营工作台</span><h1>今日执行与本月内容安排</h1><p>先处理到期任务、待审核和缺失素材，再查看完整内容成品。</p></div>
-          <button class="button primary" type="button" data-open-wizard>重新生成方案</button>
+          <div><span class="question-number">运营页面</span><h1>今天要做什么？</h1><p>先处理今天的待办、要确认的内容和还缺的资料，再查看可以确认的内容。</p></div>
+          <button class="button primary" type="button" data-open-wizard>修改信息并重新生成</button>
         </header>
 
-        <section class="result-summary-row operations-summary" aria-label="内容执行状态摘要">
-          <article><span>今日待处理</span><strong>3</strong><small>项 · 按优先级执行</small></article>
-          <article><span>待审核内容</span><strong>1</strong><small>项 · 需要确认方向</small></article>
-          <article><span>缺失素材</span><strong>2</strong><small>类 · 商户图片与现场信息</small></article>
-          <article><span>最近截止</span><strong>8月10日</strong><small>先确认首批内容主题</small></article>
+        <section class="result-summary-row operations-summary" aria-label="今天的工作情况">
+          <article><span>今天要做</span><strong>3</strong><small>项 · 先做最着急的</small></article>
+          <article><span>要确认的内容</span><strong>1</strong><small>项 · 需要确认方向</small></article>
+          <article><span>还缺的资料</span><strong>2</strong><small>类 · 商户图片和现场信息</small></article>
+          <article><span>最早截止</span><strong>8月10日</strong><small>先确认第一批内容主题</small></article>
         </section>
 
         <section class="work-section task-work operations-priority">
-          <header class="section-header"><div><span>执行任务</span><h2>今天先处理这 3 件事</h2></div><button type="button" class="button secondary">查看全部任务</button></header>
+          <header class="section-header"><div><span>今天要做什么？</span><h2>先做这 3 件事</h2></div><button type="button" class="button secondary">查看所有待办</button></header>
           <div class="operation-action-list task-list" id="operationTasks">
-            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>优先级高</span><strong>确认本月首批内容主题</strong><small>阻塞：需要负责人确认主题方向</small></div><span>运营负责人</span><time>8月10日</time><b class="status pending">待确认</b><button class="button secondary task-open" type="button" data-task-open="确认首批内容主题">打开</button></article>
-            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>缺失素材</span><strong>收集参与商户产品与图片</strong><small>阻塞：尚未确认参与商户名单</small></div><span>商户负责人</span><time>8月12日</time><b class="status missing">未开始</b><button class="button secondary task-open" type="button" data-task-open="收集商户素材">打开</button></article>
-            <article><button class="task-check" type="button" aria-label="标记完成"></button><div><span>待协同</span><strong>确认周末现场承接路线</strong><small>阻塞：需要现场负责人补充动线信息</small></div><span>现场负责人</span><time>8月14日</time><b class="status missing">未开始</b><button class="button secondary task-open" type="button" data-task-open="确认现场路线">打开</button></article>
+            <article><button class="task-check" type="button" aria-label="把这项任务标为已完成"></button><div><span>先做</span><strong>确认本月第一批内容主题</strong><small>还差：负责人确认主题方向</small></div><span>运营负责人</span><time>8月10日</time><b class="status pending">要确认</b><button class="button secondary task-open" type="button" data-task-open="确认第一批内容主题">查看任务</button></article>
+            <article><button class="task-check" type="button" aria-label="把这项任务标为已完成"></button><div><span>还缺资料</span><strong>收集参加商户的产品和图片</strong><small>还差：参加商户名单没有确定</small></div><span>商户负责人</span><time>8月12日</time><b class="status missing">还没开始</b><button class="button secondary task-open" type="button" data-task-open="收集商户资料">查看任务</button></article>
+            <article><button class="task-check" type="button" aria-label="把这项任务标为已完成"></button><div><span>等人配合</span><strong>确认周末现场路线</strong><small>还差：现场负责人补充路线信息</small></div><span>现场负责人</span><time>8月14日</time><b class="status missing">还没开始</b><button class="button secondary task-open" type="button" data-task-open="确认现场路线">查看任务</button></article>
           </div>
         </section>
 
         <section class="work-section calendar-work">
           <header class="section-header">
-            <div><span>内容日历</span><h2>待排期内容与审核节点</h2></div>
-            <div class="calendar-state"><span>当前状态</span><strong>日期待确认</strong></div>
+            <div><span>本月怎么安排？</span><h2>内容发布日期和确认时间</h2></div>
+            <div class="calendar-state"><span>目前情况</span><strong>日期还没确定</strong></div>
           </header>
           <div class="schedule-queue">
-            <article><i class="xhs"></i><span><b>小红书</b><small>地方味道人物故事</small></span><em>素材已具备</em><strong>待审核</strong></article>
-            <article><i class="wechat"></i><span><b>公众号</b><small>本月经营主题长文</small></span><em>文案草案</em><strong>等待确认</strong></article>
-            <article><i class="video"></i><span><b>短视频</b><small>周末现场路线</small></span><em>现场画面未采集</em><strong>缺失素材</strong></article>
-            <article><i class="event"></i><span><b>现场活动</b><small>限定产品联动</small></span><em>商户名单待确认</em><strong>待协同</strong></article>
+            <article><i class="xhs"></i><span><b>小红书</b><small>地方味道人物故事</small></span><em>资料已经齐全</em><strong>要确认</strong></article>
+            <article><i class="wechat"></i><span><b>公众号</b><small>本月主题长文</small></span><em>已有文案初稿</em><strong>要确认</strong></article>
+            <article><i class="video"></i><span><b>短视频</b><small>周末现场路线</small></span><em>还没有现场画面</em><strong>还缺资料</strong></article>
+            <article><i class="event"></i><span><b>现场活动</b><small>限定产品活动</small></span><em>商户名单还没确定</em><strong>等商户确认</strong></article>
           </div>
         </section>
 
         <section class="content-studio operations-content-studio">
           <header class="studio-toolbar">
-            <div><span>最新内容成品</span><h2 id="contentDirection">地方食物如何进入当代城市生活</h2></div>
+            <div><span>要发布什么内容？</span><h2 id="contentDirection">地方食物如何进入当代城市生活</h2></div>
             <div class="segmented" id="platformTabs"><button class="active" type="button" data-platform="xiaohongshu">小红书</button><button type="button" data-platform="wechat">公众号</button><button type="button" data-platform="video">短视频</button></div>
           </header>
           <div class="content-preview-layout">
             <article class="content-document">
               <span class="content-kicker" id="contentKicker">本月主推内容 · 小红书</span>
               <h3 id="contentHeadline">一座城市的味道，如何被重新装进口袋？</h3>
-              <p id="contentLead">从真实的地方食物、主理人和现场空间出发，形成可阅读、可到访、可消费的本月内容主线。</p>
+              <p id="contentLead">从具体的地方食物、主理人和现场出发，准备能让顾客愿意看、愿意来、愿意消费的内容。</p>
               <div class="content-outline" id="contentOutline">
                 <p><b>01</b><span>从一个具体味道进入地方生活</span></p>
                 <p><b>02</b><span>让商户、产品和空间共同讲述</span></p>
                 <p><b>03</b><span>把阅读兴趣承接到现场行动</span></p>
               </div>
-              <footer><span class="status pending">待审核</span><button type="button" class="text-action">查看完整文案 →</button></footer>
+              <footer><span class="status pending">要确认</span><button type="button" class="text-action">打开完整文案 →</button></footer>
             </article>
             <figure class="platform-preview">
-              <img id="platformImage" src="../assets/place-dining.jpg" alt="内容发布预览">
-              <figcaption><span id="previewPlatform">小红书发布预览</span><small>实际平台、日期和素材仍需确认</small></figcaption>
+              <img id="platformImage" src="assets/place-dining.jpg" alt="内容发布预览">
+              <figcaption><span id="previewPlatform">小红书发布预览</span><small>发布平台、日期、图片和文字还要确认</small></figcaption>
             </figure>
           </div>
         </section>
@@ -254,74 +254,74 @@
 
       <section class="question-view" id="q3View">
         <header class="page-intro">
-          <div><span class="question-number">招商工作台</span><h1>商户协同与招商推进</h1><p>用内容证据支持商户协同和招商跟进，不把尚未发生的意向写成真实进展。</p></div>
-          <button class="button secondary" type="button">补充真实品牌名单</button>
+          <div><span class="question-number">招商页面</span><h1>接下来应该联系谁？</h1><p>先填写具体品牌名称，再记录联系结果。没有联系过的品牌不会显示为已经推进。</p></div>
+          <button class="button secondary" type="button">填写具体品牌名称</button>
         </header>
 
-        <section class="result-summary-row leasing-summary" aria-label="招商推进状态摘要">
-          <article><span>真实招商线索</span><strong>0</strong><small>尚未录入</small></article>
-          <article><span>候选业态</span><strong>3</strong><small>类 · 待补真实品牌</small></article>
-          <article><span>可用招商材料</span><strong>2</strong><small>类 · 已有依据</small></article>
-          <article><span>经营表现证据</span><strong>1</strong><small>类缺口 · 未采集</small></article>
+        <section class="result-summary-row leasing-summary" aria-label="品牌联系情况">
+          <article><span>已经联系的品牌</span><strong>0</strong><small>还没有填写</small></article>
+          <article><span>适合联系的品牌类型</span><strong>3</strong><small>类 · 需要填写具体名称</small></article>
+          <article><span>可以发送的介绍材料</span><strong>2</strong><small>类 · 可以使用</small></article>
+          <article><span>还缺的数据</span><strong>1</strong><small>类 · 到店和消费情况还没记录</small></article>
         </section>
 
         <section class="candidate-preparation" id="candidatePreparation">
-          <header class="section-header"><div><span>候选品牌准备</span><h2>先确定真实品牌，再进入跟进管道</h2></div><div class="pipeline-summary"><b>0</b> 真实线索 · <b>3</b> 类候选画像</div></header>
+          <header class="section-header"><div><span>适合联系哪些品牌？</span><h2>先填写具体品牌，再开始联系</h2></div><div class="pipeline-summary"><b>0</b> 个已联系品牌 · <b>3</b> 种适合类型</div></header>
           <div class="candidate-prep-grid">
-            <button class="candidate-card active" type="button" data-lead="local-food"><span>01 · 候选画像</span><strong>地方食物代表品牌</strong><p>在地产品、人物故事与持续内容能力匹配度高。</p><small>需补：真实品牌名单</small></button>
-            <button class="candidate-card" type="button" data-lead="creator"><span>02 · 候选画像</span><strong>主理人餐饮品牌</strong><p>适合以人物、限定产品和现场体验共同运营。</p><small>需补：品牌意愿与经营条件</small></button>
-            <button class="candidate-card" type="button" data-lead="culture"><span>03 · 候选画像</span><strong>地方文化产品品牌</strong><p>可把地方文化转成游客可理解、可携带的消费产品。</p><small>需补：产品与价格带资料</small></button>
-            <article class="leasing-next-actions"><span>现在只做 3 步</span><ol><li><b>01</b>补充真实品牌名单</li><li><b>02</b>确认对应铺位和经营条件</li><li><b>03</b>有真实联系后创建招商线索</li></ol></article>
+            <button class="candidate-card active" type="button" data-lead="local-food"><span>01 · 适合类型</span><strong>地方食物代表品牌</strong><p>有在地产品、人物故事，也能持续提供内容。</p><small>还要填写：具体品牌名称</small></button>
+            <button class="candidate-card" type="button" data-lead="creator"><span>02 · 适合类型</span><strong>主理人餐饮品牌</strong><p>适合一起做人物内容、限定产品和现场体验。</p><small>还要确认：品牌是否愿意参加、需要什么条件</small></button>
+            <button class="candidate-card" type="button" data-lead="culture"><span>03 · 适合类型</span><strong>地方文化产品品牌</strong><p>能把地方文化做成游客看得懂、愿意购买的产品。</p><small>还要填写：产品和价格</small></button>
+            <article class="leasing-next-actions"><span>现在只做 3 步</span><ol><li><b>01</b>填写具体品牌名称</li><li><b>02</b>确认适合的铺位和条件</li><li><b>03</b>联系后记录沟通结果</li></ol></article>
           </div>
         </section>
 
         <section class="pipeline-work" id="realLeasingPipeline" hidden>
-          <header class="section-header"><div><span>招商管道</span><h2>真实线索与跟进阶段</h2></div><div class="pipeline-summary"><b>0</b> 真实线索</div></header>
+          <header class="section-header"><div><span>联系进度</span><h2>已经联系了谁，现在到哪一步？</h2></div><div class="pipeline-summary"><b>0</b> 个已联系品牌</div></header>
           <div class="pipeline-board" id="leasingPipeline"></div>
         </section>
 
         <section class="leasing-detail-grid">
           <article class="lead-detail" id="leadDetail">
-            <header><div><span>候选画像详情</span><h2>地方食物代表品牌</h2></div><b class="status pending">候选类型</b></header>
+            <header><div><span>为什么适合联系？</span><h2>地方食物代表品牌</h2></div><b class="status pending">适合联系</b></header>
             <dl>
-              <div><dt>推荐理由</dt><dd>具备真实产地、人物和产品内容，可形成持续市场表达。</dd></div>
-              <div><dt>适配位置</dt><dd>主入口内容展示位 / 可体验餐饮点位</dd></div>
-              <div><dt>需要验证</dt><dd>经营条件、现场适配、品牌意愿与真实铺位</dd></div>
-              <div><dt>下一动作</dt><dd>补充真实品牌名单后生成一对一招商材料</dd></div>
+              <div><dt>为什么适合</dt><dd>有明确产地、人物和产品故事，可以持续对外介绍。</dd></div>
+              <div><dt>适合哪个位置</dt><dd>主入口内容展示位 / 可以体验的餐饮位置</dd></div>
+              <div><dt>联系前要确认</dt><dd>需要哪些合作条件、是否适合现场、品牌是否愿意参加、有没有合适铺位</dd></div>
+              <div><dt>接下来做什么</dt><dd>填写具体品牌名称，再准备针对这个品牌的介绍材料</dd></div>
             </dl>
           </article>
           <article class="leasing-ammo">
-            <header><span>可使用的招商弹药</span><strong>3 类</strong></header>
-            <button type="button"><i>01</i><span><b>项目内容主张</b><small>项目故事与本月经营主题</small></span><em>可用</em></button>
-            <button type="button"><i>02</i><span><b>空间与消费场景</b><small>入口、路线与现场体验</small></span><em>可用</em></button>
-            <button type="button"><i>03</i><span><b>经营表现证据</b><small>到店、消费与商户反馈</small></span><em class="missing-text">未采集</em></button>
+            <header><span>联系品牌时可以发送什么？</span><strong>3 类</strong></header>
+            <button type="button"><i>01</i><span><b>项目介绍</b><small>项目故事和本月主题</small></span><em>可以发送</em></button>
+            <button type="button"><i>02</i><span><b>场地和顾客体验</b><small>入口、路线和现场体验</small></span><em>可以发送</em></button>
+            <button type="button"><i>03</i><span><b>目前的到店和消费情况</b><small>到店、消费和商户反馈</small></span><em class="missing-text">还没记录</em></button>
           </article>
         </section>
 
         <section class="work-section merchant-task-work">
-          <header class="section-header"><div><span>商户协同</span><h2>参与商户任务与反馈</h2></div><button type="button" class="button secondary">创建简单任务链接</button></header>
+          <header class="section-header"><div><span>商户参与</span><h2>本月商户要做什么？</h2></div><button type="button" class="button secondary">生成商户填写链接</button></header>
           <div class="merchant-table">
             <header><span>任务</span><span>参与商户</span><span>截止时间</span><span>提交材料</span><span>状态</span></header>
-            <article><strong>提交本月主推产品与价格</strong><span>待确认</span><time>待设置</time><span>图片 / 产品 / 价格</span><b class="status missing">未派发</b></article>
-            <article><strong>确认联合内容与现场活动</strong><span>待确认</span><time>待设置</time><span>参与方式 / 负责人</span><b class="status missing">未派发</b></article>
+            <article><strong>提交本月主推产品和价格</strong><span>商户还没确定</span><time>日期还没定</time><span>图片 / 产品 / 价格</span><b class="status missing">还没发给商户</b></article>
+            <article><strong>确认可以配合的内容和活动</strong><span>商户还没确定</span><time>日期还没定</time><span>参加方式 / 负责人</span><b class="status missing">还没发给商户</b></article>
           </div>
         </section>
       </section>
 
       <section class="merchant-role-view" id="merchantView" aria-hidden="true">
-        <header class="merchant-standalone-bar"><a href="./"><span>地方<br>口袋</span><strong>LOCAL POCKET · 商户任务</strong></a><button class="text-action" type="button" data-role-exit>返回项目经营台</button></header>
+        <header class="merchant-standalone-bar"><a href="./"><span>地方<br>口袋</span><strong>LOCAL POCKET · 本月商户任务</strong></a><button class="text-action" type="button" data-role-exit>返回项目首页</button></header>
         <header class="page-intro merchant-page-intro">
           <div>
-            <span class="question-number">商户任务中心</span>
+            <span class="question-number">本月商户任务</span>
             <h1>本月只需要完成 3 件事</h1>
-            <p>查看本月主题、提交必要材料，并确认与本月经营活动直接相关的参与方式。</p>
+            <p>查看本月主题、提交需要的资料，再选择本月可以配合的内容和活动。</p>
           </div>
           <div class="merchant-progress"><span>当前进度</span><strong id="merchantProgressValue">0 / 3</strong><small id="merchantProgressText">任务尚未开始</small></div>
         </header>
 
         <section class="merchant-task-section merchant-sequence">
           <header class="section-header">
-            <div><span>下一项任务</span><h2>每次只完成一步</h2></div>
+            <div><span>本月商户要做什么？</span><h2>每次只完成一步</h2></div>
             <div class="merchant-deadline"><span>本轮截止</span><strong>8月12日</strong></div>
           </header>
           <div class="merchant-sequence-layout">
@@ -332,43 +332,43 @@
             </ol>
             <div class="merchant-step-panels">
               <form class="merchant-step-panel active" data-merchant-step="1">
-                <span>任务 1 / 3</span><h2>提交本月主推产品与价格</h2><p>只填写本月真实有效的产品信息。</p>
+                <span>任务 1 / 3</span><h2>提交本月主推产品和价格</h2><p>只填写这个月确定会销售的产品信息。</p>
                 <div class="merchant-form-grid"><label><span>产品名称</span><input type="text" name="product_name" placeholder="例如：本月限定桂花糕"></label><label><span>售价</span><input type="text" name="product_price" placeholder="例如：38 元 / 份"></label><label class="full"><span>一句推荐理由</span><textarea name="product_reason" placeholder="说清楚产品特点和本月为什么值得推荐"></textarea></label></div>
-                <footer><small>信息可以稍后修改</small><button class="button primary" type="button" data-merchant-next>保存并继续</button></footer>
+                <footer><small>保存后仍然可以修改</small><button class="button primary" type="button" data-merchant-next>保存，继续上传图片</button></footer>
               </form>
               <form class="merchant-step-panel" data-merchant-step="2">
-                <span>任务 2 / 3</span><h2>上传图片与品牌故事</h2><p>上传 3–6 张原图，再写一段真实的人物或产品故事。</p>
+                <span>任务 2 / 3</span><h2>上传图片和品牌故事</h2><p>上传 3–6 张原图，再写一段具体的人物或产品故事。</p>
                 <div class="merchant-upload"><label><span>选择图片</span><input type="file" name="merchant_images" accept="image/*" multiple></label><label><span>品牌或产品故事</span><textarea name="brand_story" placeholder="可以写谁在做、为什么做、产品与地方的关系"></textarea></label></div>
-                <footer><button class="text-action" type="button" data-merchant-prev>返回上一步</button><button class="button primary" type="button" data-merchant-next>保存并继续</button></footer>
+                <footer><button class="text-action" type="button" data-merchant-prev>返回产品信息</button><button class="button primary" type="button" data-merchant-next>保存，继续选择参加方式</button></footer>
               </form>
               <form class="merchant-step-panel" data-merchant-step="3">
-                <span>任务 3 / 3</span><h2>确认联合内容与现场参与</h2><p>选择本月可以配合的方式，不确定的可以暂不选。</p>
-                <div class="merchant-choice-list"><label><input type="checkbox" name="participation" value="content"><span><b>内容拍摄</b><small>提供产品和人物出镜</small></span></label><label><input type="checkbox" name="participation" value="event"><span><b>现场活动</b><small>参与限定产品或周末活动</small></span></label><label><input type="checkbox" name="participation" value="share"><span><b>联合传播</b><small>在自有账号转发本月内容</small></span></label></div>
-                <footer><button class="text-action" type="button" data-merchant-prev>返回上一步</button><button class="button primary" type="button" data-merchant-submit>确认提交</button></footer>
+                <span>任务 3 / 3</span><h2>选择可以配合的内容和活动</h2><p>只选择这个月确定可以参加的项目，不确定的可以先不选。</p>
+                <div class="merchant-choice-list"><label><input type="checkbox" name="participation" value="content"><span><b>参加内容拍摄</b><small>提供产品，或安排人物出镜</small></span></label><label><input type="checkbox" name="participation" value="event"><span><b>参加现场活动</b><small>提供限定产品，或参加周末活动</small></span></label><label><input type="checkbox" name="participation" value="share"><span><b>在自己的账号转发</b><small>转发本月确认发布的内容</small></span></label></div>
+                <footer><button class="text-action" type="button" data-merchant-prev>返回图片和故事</button><button class="button primary" type="button" data-merchant-submit>提交给项目负责人</button></footer>
               </form>
             </div>
           </div>
         </section>
 
         <section class="merchant-theme-band merchant-theme-compact">
-          <div><span>2026年8月 · 本月经营主题</span><h2>一座城市的味道，如何被重新装进口袋？</h2><p>通过真实产品、人物故事和现场体验，让顾客产生到访与消费理由。</p></div>
-          <aside><span>你的参与价值</span><strong>产品获得内容曝光，并进入本月现场消费场景。</strong><small>实际发布、活动安排和采用结果以项目方最终确认为准。</small></aside>
+          <div><span>2026年8月 · 本月主题</span><h2>一座城市的味道，如何被重新装进口袋？</h2><p>通过具体产品、人物故事和现场体验，让顾客愿意到店和消费。</p></div>
+          <aside><span>参加后能获得什么？</span><strong>你的产品有机会出现在本月内容和现场活动中。</strong><small>是否发布、什么时候举行活动，由项目负责人最后确认。</small></aside>
         </section>
 
         <section class="merchant-support-grid">
           <figure class="merchant-example">
-            <img src="../assets/place-dining.jpg" alt="本月内容示例">
-            <figcaption><span>本月内容示例</span><strong>真实产品 + 人物故事 + 现场体验</strong><small>示例只帮助理解提交方向，不代表最终发布版式。</small></figcaption>
+            <img src="assets/place-dining.jpg" alt="本月内容示例">
+            <figcaption><span>本月内容示例</span><strong>具体产品 + 人物故事 + 现场体验</strong><small>示例只帮助你理解要提交什么，不代表最后发布的样式。</small></figcaption>
           </figure>
           <article class="merchant-help">
-            <span>提交标准</span>
-            <h2>信息少，但必须真实可用</h2>
+            <span>提交前请确认</span>
+            <h2>只填写这个月确定的信息</h2>
             <ul>
               <li><b>01</b><span>价格、产品和活动信息必须是本月有效信息。</span></li>
               <li><b>02</b><span>图片尽量使用原图，不需要提前设计排版。</span></li>
               <li><b>03</b><span>不确定的内容可以标记待确认，不需要猜测。</span></li>
             </ul>
-            <button class="text-action" type="button" data-merchant-action="联系项目负责人">联系项目负责人 →</button>
+            <button class="text-action" type="button" data-merchant-action="向项目负责人询问">向项目负责人询问 →</button>
           </article>
         </section>
       </section>
@@ -380,11 +380,11 @@
       <button class="wizard-close" type="button" id="closeWizard" aria-label="关闭输入">×</button>
       <span class="brand-mark">地方<br>口袋</span>
       <div>
-        <span>已自动读取</span>
+        <span>这些资料不用再填</span>
         <h2>只填写本月发生的变化</h2>
-        <p>项目定位、空间资料、历史内容和已批准素材会自动参与，不需要重复录入。</p>
+        <p>项目介绍、场地资料、以前的内容和已经确认可用的图片会自动带入，不需要重复填写。</p>
       </div>
-      <ul><li><i>✓</i> 项目定位与当前阶段</li><li><i>✓</i> 空间、商户和经营资产</li><li><i>✓</i> 已批准内容与视觉素材</li><li><i>✓</i> 历史反馈与指标口径</li></ul>
+      <ul><li><i>✓</i> 项目介绍和现在的进度</li><li><i>✓</i> 场地和已有商户资料</li><li><i>✓</i> 已经确认可以使用的文字和图片</li><li><i>✓</i> 以前的反馈和统计方法</li></ul>
     </aside>
     <div class="wizard-content">
       <header class="wizard-header">
@@ -397,19 +397,19 @@
         <input id="target_audience" name="target_audience" type="hidden" value="mixed">
 
         <section class="wizard-step active" data-step="1">
-          <span>本月经营目标</span><h1>选择本月首要经营目标</h1><p>只选一个主要目标，方案仍会覆盖内容、运营、商户和招商。</p>
+          <span>本月最重要的目标</span><h1>这个月最想先解决什么？</h1><p>只选一个最重要的目标，生成的计划仍会考虑内容、商户和品牌联系。</p>
           <div class="option-grid" id="goalOptions">
-            <button class="option active" type="button" data-goal="overall_plan"><b>A</b><span><strong>整体经营</strong><small>让内容、商户和招商围绕同一目标</small></span></button>
-            <button class="option" type="button" data-goal="content_growth"><b>B</b><span><strong>内容增长</strong><small>形成关注、到访与消费理由</small></span></button>
-            <button class="option" type="button" data-goal="merchant_collaboration"><b>C</b><span><strong>商户协同</strong><small>推动商户参与和现场执行</small></span></button>
-            <button class="option" type="button" data-goal="merchant_attraction"><b>D</b><span><strong>招商推进</strong><small>形成品牌画像和入驻理由</small></span></button>
+            <button class="option active" type="button" data-goal="overall_plan"><b>A</b><span><strong>整体推进</strong><small>让内容、商户和品牌联系围绕同一个目标</small></span></button>
+            <button class="option" type="button" data-goal="content_growth"><b>B</b><span><strong>吸引更多顾客</strong><small>让更多人关注、到店和消费</small></span></button>
+            <button class="option" type="button" data-goal="merchant_collaboration"><b>C</b><span><strong>让商户参加</strong><small>确定参加商户和现场要做的事</small></span></button>
+            <button class="option" type="button" data-goal="merchant_attraction"><b>D</b><span><strong>联系新品牌</strong><small>找到适合的品牌并说明为什么值得加入</small></span></button>
           </div>
         </section>
 
         <section class="wizard-step" data-step="2">
-          <span>目标客群</span><h1>选择本月核心客群</h1><p>选择一个核心人群，其他相关角色仍会参与经营分析。</p>
+          <span>本月最重要的人群</span><h1>这个月最想影响谁？</h1><p>选择一类最重要的人，其他人群仍会在计划中考虑。</p>
           <div class="option-grid">
-            <button class="option active" type="button" data-audience="mixed"><b>A</b><span><strong>消费者、游客与潜在商户</strong><small>同时考虑消费现场与经营合作</small></span></button>
+            <button class="option active" type="button" data-audience="mixed"><b>A</b><span><strong>消费者、游客与潜在商户</strong><small>同时考虑顾客体验和商户是否愿意合作</small></span></button>
             <button class="option" type="button" data-audience="young_local"><b>B</b><span><strong>本地年轻消费者</strong><small>关注新鲜感、传播和复访</small></span></button>
             <button class="option" type="button" data-audience="visitors"><b>C</b><span><strong>游客与外来消费者</strong><small>关注目的性、体验和城市记忆</small></span></button>
             <button class="option" type="button" data-audience="merchants"><b>D</b><span><strong>潜在商户与合作方</strong><small>关注项目能力、匹配度和入驻理由</small></span></button>
@@ -417,67 +417,67 @@
         </section>
 
         <section class="wizard-step" data-step="3">
-          <span>本月预算</span><h1>确认本轮预算范围</h1><p>预算只用于控制方案规模，不会自动产生支出。</p>
+          <span>本月最多花多少钱</span><h1>这个月最多准备花多少钱？</h1><p>这个选择只会调整计划大小，不会自动花钱。</p>
           <div class="option-list">
-            <button class="option active" type="button" data-budget="待确认"><b>A</b><span><strong>暂不锁定</strong><small>先确认方案范围，再由老板决定预算</small></span></button>
-            <button class="option" type="button" data-budget="5000元以内"><b>B</b><span><strong>5,000 元以内</strong><small>聚焦少量高优先级动作</small></span></button>
-            <button class="option" type="button" data-budget="5000至20000元"><b>C</b><span><strong>5,000–20,000 元</strong><small>覆盖内容、现场和商户协同</small></span></button>
+            <button class="option active" type="button" data-budget="待确认"><b>A</b><span><strong>暂不锁定</strong><small>先看计划要做多少事，再由老板决定预算</small></span></button>
+            <button class="option" type="button" data-budget="5000元以内"><b>B</b><span><strong>5,000 元以内</strong><small>只做少量最重要的事</small></span></button>
+            <button class="option" type="button" data-budget="5000至20000元"><b>C</b><span><strong>5,000–20,000 元</strong><small>可以覆盖内容、现场和商户参加</small></span></button>
             <button class="option" type="button" data-budget="20000元以上"><b>D</b><span><strong>20,000 元以上</strong><small>允许更完整的活动与传播组合</small></span></button>
           </div>
         </section>
 
         <section class="wizard-step" data-step="4">
-          <span>资源优先级</span><h1>确认本月资源优先级</h1><p>选择一个第一优先级，方案会据此安排其他工作的先后顺序。</p>
+          <span>这个月先做哪件事</span><h1>先把人和时间用在哪件事上？</h1><p>选择一件最先做的事，其他工作会排在后面。</p>
           <div class="option-grid">
-            <button class="option active" type="button" data-priority="内容生产"><b>A</b><span><strong>内容生产</strong><small>先形成持续的市场刺激</small></span></button>
-            <button class="option" type="button" data-priority="商户与现场"><b>B</b><span><strong>商户与现场</strong><small>先让内容落到真实经营动作</small></span></button>
-            <button class="option" type="button" data-priority="招商推进"><b>C</b><span><strong>招商推进</strong><small>优先形成品牌线索和沟通材料</small></span></button>
-            <button class="option" type="button" data-priority="数据验证"><b>D</b><span><strong>数据验证</strong><small>优先补齐反馈和经营证据</small></span></button>
+            <button class="option active" type="button" data-priority="内容生产"><b>A</b><span><strong>先做内容</strong><small>先准备可以发布的文字、图片和视频</small></span></button>
+            <button class="option" type="button" data-priority="商户与现场"><b>B</b><span><strong>先确定商户和现场</strong><small>先确定谁参加、现场怎么配合</small></span></button>
+            <button class="option" type="button" data-priority="招商推进"><b>C</b><span><strong>先联系新品牌</strong><small>先填写品牌名称并准备联系材料</small></span></button>
+            <button class="option" type="button" data-priority="数据验证"><b>D</b><span><strong>先记录顾客和商户反馈</strong><small>先补齐到店、消费和商户反馈</small></span></button>
           </div>
         </section>
 
         <section class="wizard-step" data-step="5">
-          <span>本月变化</span><h1>补充本月新增变化</h1><p>没有变化可以直接继续，已有资料会自动参与方案。</p>
-          <label class="context-input"><textarea id="additional_context" name="additional_context" placeholder="例如：本月新增周末夜间场次，希望优先验证年轻客群的到访兴趣。"></textarea><small>不要重复填写项目定位、空间资料、菜单和历史内容。</small></label>
-          <div class="input-summary"><p><span>经营目标</span><strong id="summaryGoal">整体经营</strong></p><p><span>目标客群</span><strong id="summaryAudience">消费者、游客与潜在商户</strong></p><p><span>预算范围</span><strong id="summaryBudget">暂不锁定</strong></p><p><span>第一优先级</span><strong id="summaryPriority">内容生产</strong></p></div>
+          <span>这个月的新变化</span><h1>这个月有什么新情况？</h1><p>没有变化可以直接继续，以前填过的内容会自动带入。</p>
+          <label class="context-input"><textarea id="additional_context" name="additional_context" placeholder="例如：这个月增加周末夜间场次，想先看看年轻顾客愿不愿意来。"></textarea><small>项目介绍、场地资料、菜单和以前的内容不用重复填写。</small></label>
+          <div class="input-summary"><p><span>本月目标</span><strong id="summaryGoal">整体推进</strong></p><p><span>最重要的人群</span><strong id="summaryAudience">消费者、游客与潜在商户</strong></p><p><span>最多花多少钱</span><strong id="summaryBudget">暂不锁定</strong></p><p><span>最先做的事</span><strong id="summaryPriority">先做内容</strong></p></div>
         </section>
 
-        <footer class="wizard-actions"><button class="button secondary" id="wizardBack" type="button" disabled>上一步</button><button class="button primary" id="wizardNext" type="button">下一步</button></footer>
+        <footer class="wizard-actions"><button class="button secondary" id="wizardBack" type="button" disabled>返回上一步</button><button class="button primary" id="wizardNext" type="button">继续选择人群</button></footer>
       </form>
     </div>
   </section>
 
       <dialog id="feedbackDialog">
         <form method="dialog" class="feedback-form">
-          <header><span>留言</span><h2>告诉我们哪里需要调整</h2><p>直接说你希望变成什么样。</p></header>
+          <header><span>修改意见</span><h2>你希望哪里改一下？</h2><p>直接写你希望改成什么样。</p></header>
           <textarea id="feedbackText" placeholder="例如：招商部分需要更具体；内容方向希望增加家庭客群。"></textarea>
-          <footer><button class="button secondary" value="cancel">取消</button><button class="button primary" id="saveFeedback" value="default">保存留言</button></footer>
+          <footer><button class="button secondary" value="cancel">不保存并关闭</button><button class="button primary" id="saveFeedback" value="default">保存这条意见</button></footer>
         </form>
       </dialog>
 
       <dialog class="pulse-detail-dialog" id="ownerMetricDialog">
         <form method="dialog">
-          <header><div><span id="ownerMetricDialogStatus">指标详情</span><h2 id="ownerMetricDialogTitle">已准备内容</h2></div><button value="cancel" aria-label="关闭指标详情">×</button></header>
+          <header><div><span id="ownerMetricDialogStatus">目标完成情况</span><h2 id="ownerMetricDialogTitle">已准备内容</h2></div><button value="cancel" aria-label="关闭目标详情">×</button></header>
           <div class="pulse-dialog-values"><p><span>实际</span><strong id="ownerMetricDialogActual">6 项</strong></p><p><span>目标</span><strong id="ownerMetricDialogTarget">8 项</strong></p><p><span>差距</span><strong id="ownerMetricDialogGap">-2 项</strong></p><p><span>趋势</span><strong id="ownerMetricDialogTrend">较上期增加 2 项</strong></p></div>
-          <section><span>发生了什么</span><p id="ownerMetricDialogInsight">内容准备接近目标，但尚未转成真实测试。</p></section>
-          <section><span>主要原因</span><p id="ownerMetricDialogReason">首批测试范围和执行安排尚未确认。</p></section>
-          <section><span>建议动作</span><p id="ownerMetricDialogAction">从现有内容中选择 3 项进入一周小范围测试。</p></section>
-          <footer><button class="button primary" value="cancel">看完了</button></footer>
+          <section><span>发生了什么</span><p id="ownerMetricDialogInsight">内容准备接近目标，但还没有开始测试。</p></section>
+          <section><span>主要原因</span><p id="ownerMetricDialogReason">第一批测试内容和安排还没有确定。</p></section>
+          <section><span>下一步做什么</span><p id="ownerMetricDialogAction">从现有内容中选择 3 项进入一周小范围测试。</p></section>
+          <footer><button class="button primary" value="cancel">关闭目标详情</button></footer>
         </form>
       </dialog>
 
       <dialog class="pulse-detail-dialog pulse-report-dialog" id="ownerReportDialog">
         <form method="dialog">
-          <header><div><span id="ownerReportType">经营简报</span><h2 id="ownerReportTitle">8月第2周经营简报</h2></div><button value="cancel" aria-label="关闭经营简报">×</button></header>
-          <section class="pulse-report-conclusion"><span>一句话结论</span><p id="ownerReportConclusion">准备工作已经完成，本周关键是启动第一轮小范围验证。</p></section>
-          <div class="pulse-report-points" id="ownerReportPoints"><p><i>01</i><span><b>进展</b>已有 6 项内容可以使用。</span></p><p><i>02</i><span><b>问题</b>测试、商户参与和招商线索仍未启动。</span></p><p><i>03</i><span><b>下一步</b>完成三项老板决定并进入一周验证。</span></p></div>
-          <footer><button class="button primary" value="cancel">关闭简报</button></footer>
+          <header><div><span id="ownerReportType">本周情况</span><h2 id="ownerReportTitle">8月第2周项目报告</h2></div><button value="cancel" aria-label="关闭项目报告">×</button></header>
+          <section class="pulse-report-conclusion"><span>一句话说明</span><p id="ownerReportConclusion">准备工作已经完成，本周最重要的是开始第一轮小范围测试。</p></section>
+          <div class="pulse-report-points" id="ownerReportPoints"><p><i>01</i><span><b>已经完成</b>已有 6 项内容可以使用。</span></p><p><i>02</i><span><b>还没完成</b>测试、商户参加和品牌联系都还没开始。</span></p><p><i>03</i><span><b>下一步</b>完成三项老板决定，再做一周小范围测试。</span></p></div>
+          <footer><button class="button primary" value="cancel">关闭项目报告</button></footer>
         </form>
       </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="review-data.js?v=20260717-pulse"></script>
-  <script src="review-guard.js?v=20260717-pulse"></script>
-  <script src="client-preview.js?v=20260717-pulse"></script>
+  <script src="review-data.js?v=20260717-language"></script>
+  <script src="review-guard.js?v=20260717-language"></script>
+  <script src="client-preview.js?v=20260717-language"></script>
 </body>
 </html>

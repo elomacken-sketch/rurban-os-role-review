@@ -8,8 +8,34 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "review-manifest.json"
 MODEL_REVIEW = ROOT / "MODEL_REVIEW.md"
 VISUAL_PDF = ROOT / "output" / "pdf" / "rurban-os-model-review.pdf"
+APP_HTML = ROOT / "app" / "index.html"
+APP_JS = ROOT / "app" / "client-preview.js"
+PUBLIC_INDEX = ROOT / "index.html"
+COPY_TABLE = ROOT / "PLAIN_LANGUAGE_COPY.md"
 EXPECTED_SCREEN_COUNT = 19
 EXPECTED_INTERACTION_IDS = {"owner-metric-detail", "owner-weekly-report", "owner-ai-answer"}
+FORBIDDEN_USER_COPY = {
+    "经营链路",
+    "输出件",
+    "工作流",
+    "Campaign",
+    "Gate",
+    "资产图谱",
+    "真实采用项",
+    "候选品牌画像",
+    "招商弹药",
+    "经营证据",
+    "商户赋能",
+}
+REQUIRED_PLAIN_LANGUAGE = {
+    "这个月项目怎么样？",
+    "哪些目标还没完成？",
+    "现在最需要解决什么？",
+    "需要你决定什么？",
+    "今天要做什么？",
+    "接下来应该联系谁？",
+    "本月商户要做什么？",
+}
 
 
 def fail(message):
@@ -23,6 +49,17 @@ def main():
         fail("MODEL_REVIEW.md is missing")
     if not VISUAL_PDF.is_file() or VISUAL_PDF.stat().st_size < 1_000_000:
         fail("visual interaction PDF is missing or unexpectedly small")
+    for path in [APP_HTML, APP_JS, PUBLIC_INDEX, COPY_TABLE]:
+        if not path.is_file():
+            fail(f"required review artifact is missing: {path.name}")
+
+    user_copy = APP_HTML.read_text(encoding="utf-8") + APP_JS.read_text(encoding="utf-8") + PUBLIC_INDEX.read_text(encoding="utf-8")
+    for value in FORBIDDEN_USER_COPY:
+        if value in user_copy:
+            fail(f"ordinary-user app contains forbidden copy: {value}")
+    for value in REQUIRED_PLAIN_LANGUAGE:
+        if value not in user_copy:
+            fail(f"ordinary-user app is missing required question: {value}")
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     screens = manifest.get("screens", [])
@@ -57,7 +94,7 @@ def main():
         if secret_pattern.search(path.read_text(encoding="utf-8")):
             fail(f"possible credential found in {path.name}")
 
-    print(f"PASS: {len(screens)} screens, visual interaction PDF, stable model entry")
+    print(f"PASS: {len(screens)} screens, plain-language app, visual interaction PDF, stable model entry")
 
 
 if __name__ == "__main__":

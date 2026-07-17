@@ -15,29 +15,29 @@
     "fixture_content_only": true
   },
   "screens": [
-    {"id":"owner-overview","role":"owner","label":"经营脉搏单页","screenshot":"screenshots/views/owner-overview.png","actions":["查看指标原因","展开风险与决策","问 AI","查看周报或月报"]},
-    {"id":"owner-metric-detail","role":"owner","label":"指标详情","screenshot":"screenshots/views/owner-metric-detail.png","actions":["点击已投入测试","关闭指标详情"]},
-    {"id":"owner-weekly-report","role":"owner","label":"周报简报","screenshot":"screenshots/views/owner-weekly-report.png","actions":["点击周报","关闭简报"]},
+    {"id":"owner-overview","role":"owner","label":"这个月项目怎么样","screenshot":"screenshots/views/owner-overview.png","actions":["查看目标原因","展开当前问题和建议","问 AI","查看本周或本月报告"]},
+    {"id":"owner-metric-detail","role":"owner","label":"目标详情","screenshot":"screenshots/views/owner-metric-detail.png","actions":["点击已投入测试","关闭目标详情"]},
+    {"id":"owner-weekly-report","role":"owner","label":"本周报告","screenshot":"screenshots/views/owner-weekly-report.png","actions":["点击本周情况","关闭项目报告"]},
     {"id":"owner-ai-answer","role":"owner","label":"AI 追问结果","screenshot":"screenshots/views/owner-ai-answer.png","actions":["点击建议问题","查看模拟回答"]},
-    {"id":"operations-today","role":"operations","label":"今日工作台","screenshot":"screenshots/views/operations-today.png","actions":["打开任务","标记完成","查看全部任务"]},
-    {"id":"operations-calendar","role":"operations","label":"内容日历与活动","screenshot":"screenshots/views/operations-calendar.png","actions":["切换筛选","打开内容"]},
-    {"id":"operations-content","role":"operations","label":"内容生产","screenshot":"screenshots/views/operations-content.png","actions":["切换平台","查看完整文案"]},
-    {"id":"leasing-overview","role":"leasing","label":"招商推进总览","screenshot":"screenshots/views/leasing-overview.png","actions":["补充真实品牌名单"]},
-    {"id":"leasing-candidates","role":"leasing","label":"品牌画像与候选库","screenshot":"screenshots/views/leasing-candidates.png","actions":["切换候选画像"]},
-    {"id":"leasing-ammo","role":"leasing","label":"铺位与招商材料","screenshot":"screenshots/views/leasing-ammo.png","actions":["打开材料","查看缺失项"]},
-    {"id":"leasing-merchants","role":"leasing","label":"商户协同反馈","screenshot":"screenshots/views/leasing-merchants.png","actions":["生成任务链接"]},
-    {"id":"merchant-step-1","role":"merchant","label":"提交产品与价格","screenshot":"screenshots/views/merchant-step-1.png","actions":["保存并继续"]},
-    {"id":"merchant-step-2","role":"merchant","label":"上传图片与品牌故事","screenshot":"screenshots/views/merchant-step-2.png","actions":["选择图片","保存并继续","返回上一步"]},
-    {"id":"merchant-step-3","role":"merchant","label":"确认参与方式","screenshot":"screenshots/views/merchant-step-3.png","actions":["确认提交","返回上一步"]},
-    {"id":"input-step-1","role":"input","label":"选择本月目标","screenshot":"screenshots/views/input-step-1.png","actions":["选择目标","下一步"]},
-    {"id":"input-step-2","role":"input","label":"选择重点客群","screenshot":"screenshots/views/input-step-2.png","actions":["选择客群","上一步","下一步"]},
-    {"id":"input-step-3","role":"input","label":"确认费用范围","screenshot":"screenshots/views/input-step-3.png","actions":["选择费用范围","上一步","下一步"]},
-    {"id":"input-step-4","role":"input","label":"选择第一优先级","screenshot":"screenshots/views/input-step-4.png","actions":["选择优先级","上一步","下一步"]},
-    {"id":"input-step-5","role":"input","label":"补充本月新增变化","screenshot":"screenshots/views/input-step-5.png","actions":["填写变化","上一步","生成本月方案"]}
+    {"id":"operations-today","role":"operations","label":"今天要做什么","screenshot":"screenshots/views/operations-today.png","actions":["查看任务","标记完成","查看所有待办"]},
+    {"id":"operations-calendar","role":"operations","label":"本月怎么安排","screenshot":"screenshots/views/operations-calendar.png","actions":["查看日期和确认情况"]},
+    {"id":"operations-content","role":"operations","label":"要发布什么内容","screenshot":"screenshots/views/operations-content.png","actions":["切换平台","打开完整文案"]},
+    {"id":"leasing-overview","role":"leasing","label":"接下来应该联系谁","screenshot":"screenshots/views/leasing-overview.png","actions":["填写具体品牌名称"]},
+    {"id":"leasing-candidates","role":"leasing","label":"适合联系哪些品牌","screenshot":"screenshots/views/leasing-candidates.png","actions":["切换品牌类型"]},
+    {"id":"leasing-ammo","role":"leasing","label":"可以发送什么材料","screenshot":"screenshots/views/leasing-ammo.png","actions":["查看现有材料和还缺的数据"]},
+    {"id":"leasing-merchants","role":"leasing","label":"商户参加得怎么样","screenshot":"screenshots/views/leasing-merchants.png","actions":["生成商户填写链接"]},
+    {"id":"merchant-step-1","role":"merchant","label":"提交产品和价格","screenshot":"screenshots/views/merchant-step-1.png","actions":["保存并继续上传图片"]},
+    {"id":"merchant-step-2","role":"merchant","label":"上传图片和品牌故事","screenshot":"screenshots/views/merchant-step-2.png","actions":["选择图片","保存并继续选择参加方式","返回产品信息"]},
+    {"id":"merchant-step-3","role":"merchant","label":"选择参加方式","screenshot":"screenshots/views/merchant-step-3.png","actions":["提交给项目负责人","返回图片和故事"]},
+    {"id":"input-step-1","role":"input","label":"选择本月目标","screenshot":"screenshots/views/input-step-1.png","actions":["选择目标","继续选择人群"]},
+    {"id":"input-step-2","role":"input","label":"选择最重要的人群","screenshot":"screenshots/views/input-step-2.png","actions":["选择人群","返回选择目标","继续选择预算"]},
+    {"id":"input-step-3","role":"input","label":"选择最多花多少钱","screenshot":"screenshots/views/input-step-3.png","actions":["选择金额","返回选择人群","继续选择先做的事"]},
+    {"id":"input-step-4","role":"input","label":"选择先做哪件事","screenshot":"screenshots/views/input-step-4.png","actions":["选择先做的事","返回选择预算","继续填写本月变化"]},
+    {"id":"input-step-5","role":"input","label":"填写本月新情况","screenshot":"screenshots/views/input-step-5.png","actions":["填写变化","返回选择先做的事","生成本月计划"]}
   ],
   "known_issues": [
     "商户入口仍显示在内部角色切换器中",
-    "商户任务页仍保留返回项目经营台入口",
-    "部分用户可见词汇仍需继续改成人话"
+    "商户任务页仍保留返回项目首页入口",
+    "部分按钮只有外观或提示，尚无完整点击结果"
   ]
 }

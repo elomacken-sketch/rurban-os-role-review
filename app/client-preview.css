@@ -169,7 +169,7 @@ img { display: block; max-width: 100%; }
 .owner-slide-rail button.active { color: var(--black); background: var(--yellow); }
 .owner-slide-rail button b { font-family: var(--mono); font-size: 8px; }
 .owner-slide-rail button span { font-size: 10px; font-weight: 800; }
-.owner-slide-stage { position: relative; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 52px 48px; overflow: hidden; color: #fff; background: var(--black) url('/ui/assets/place-plan.jpg') center/cover; isolation: isolate; }
+.owner-slide-stage { position: relative; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 52px 48px; overflow: hidden; color: #fff; background: var(--black) url('assets/place-plan.jpg') center/cover; isolation: isolate; }
 .owner-slide-stage::before { content: ""; position: absolute; z-index: -1; inset: 0; background: rgba(0,0,0,.76); }
 .owner-slide-stage > span { color: var(--yellow); font-family: var(--mono); font-size: 9px; }
 .owner-slide-stage h3 { max-width: 800px; margin-top: 17px; font-family: var(--display); font-size: 35px; line-height: 1.2; }
@@ -402,7 +402,7 @@ body[data-view="q1"] #q1View { max-width: 1400px; margin: 0 auto; padding: 20px 
 .merchant-progress span, .merchant-progress small { color: var(--muted); font-size: 9px; }
 .merchant-progress strong { font-family: var(--display); font-size: 22px; }
 .merchant-theme-band { min-height: 220px; display: grid; grid-template-columns: minmax(0,1.45fr) minmax(330px,.65fr); color: #fff; background: var(--black); border: 2px solid var(--black); }
-.merchant-theme-band > div { position: relative; display: grid; align-content: center; gap: 15px; padding: 32px 38px; background-image: url('/ui/assets/place-market.jpg'); background-position: center; background-size: cover; isolation: isolate; }
+.merchant-theme-band > div { position: relative; display: grid; align-content: center; gap: 15px; padding: 32px 38px; background-image: url('assets/place-market.jpg'); background-position: center; background-size: cover; isolation: isolate; }
 .merchant-theme-band > div::before { content: ""; position: absolute; z-index: -1; inset: 0; background: rgba(0,0,0,.76); }
 .merchant-theme-band > div > span, .merchant-theme-band aside > span { color: var(--aqua); font-family: var(--mono); font-size: 9px; font-weight: 800; }
 .merchant-theme-band h2 { max-width: 760px; font-family: var(--display); font-size: 29px; line-height: 1.28; }

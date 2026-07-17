@@ -1,8 +1,8 @@
 const goalLabels = {
-  overall_plan: "整体经营",
-  content_growth: "内容增长",
-  merchant_collaboration: "商户协同",
-  merchant_attraction: "招商推进",
+  overall_plan: "整体推进",
+  content_growth: "吸引更多顾客",
+  merchant_collaboration: "让商户参加",
+  merchant_attraction: "联系新品牌",
 };
 
 const audienceLabels = {
@@ -20,9 +20,16 @@ const budgetLabels = {
 };
 
 const stateLabels = {
-  available: "已有依据",
-  pending: "待确认",
-  missing: "未采集",
+  available: "可以使用",
+  pending: "要确认",
+  missing: "还没记录",
+};
+
+const priorityLabels = {
+  "内容生产": "先做内容",
+  "商户与现场": "先确定商户和现场",
+  "招商推进": "先联系新品牌",
+  "数据验证": "先记录顾客和商户反馈",
 };
 
 const roleLabels = {
@@ -34,26 +41,26 @@ const roleLabels = {
 
 const roleNavigation = {
   owner: {
-    label: "老板端",
+    label: "老板页面",
     items: [
-      { key: "owner-overview", question: "q1", title: "经营脉搏", subtitle: "结果、风险与决策" },
+      { key: "owner-overview", question: "q1", title: "这个月项目怎么样？", subtitle: "结果、问题和要决定的事" },
     ],
   },
   operations: {
-    label: "运营工作台",
+    label: "运营页面",
     items: [
-      { key: "operations-today", question: "q2", title: "今日工作台", subtitle: "任务、审核与缺失素材" },
-      { key: "operations-calendar", question: "q2", target: ".calendar-work", title: "内容日历与活动", subtitle: "排期、活动与负责人" },
-      { key: "operations-content", question: "q2", target: ".operations-content-studio", title: "内容生产", subtitle: "文案、图片与视频" },
+      { key: "operations-today", question: "q2", title: "今天要做什么？", subtitle: "待办、要确认和还缺的资料" },
+      { key: "operations-calendar", question: "q2", target: ".calendar-work", title: "本月怎么安排？", subtitle: "日期、活动和负责人" },
+      { key: "operations-content", question: "q2", target: ".operations-content-studio", title: "要发布什么内容？", subtitle: "文案、图片和视频" },
     ],
   },
   leasing: {
-    label: "招商工作台",
+    label: "招商页面",
     items: [
-      { key: "leasing-overview", question: "q3", title: "招商推进总览", subtitle: "目标、线索与阻碍" },
-      { key: "leasing-candidates", question: "q3", target: "#candidatePreparation", title: "品牌画像与候选库", subtitle: "候选品牌与匹配理由" },
-      { key: "leasing-ammo", question: "q3", target: ".leasing-detail-grid", title: "铺位与招商材料", subtitle: "空间、内容与沟通弹药" },
-      { key: "leasing-merchants", question: "q3", target: ".merchant-task-work", title: "商户协同反馈", subtitle: "参与、任务与回传" },
+      { key: "leasing-overview", question: "q3", title: "接下来应该联系谁？", subtitle: "品牌名称、联系结果和卡住的事" },
+      { key: "leasing-candidates", question: "q3", target: "#candidatePreparation", title: "适合联系哪些品牌？", subtitle: "适合类型和原因" },
+      { key: "leasing-ammo", question: "q3", target: ".leasing-detail-grid", title: "可以发送什么材料？", subtitle: "场地、内容和项目介绍" },
+      { key: "leasing-merchants", question: "q3", target: ".merchant-task-work", title: "商户参加得怎么样？", subtitle: "要做的事和提交情况" },
     ],
   },
 };
@@ -77,103 +84,103 @@ const state = {
 
 const platformContent = {
   xiaohongshu: {
-    label: "本月主推内容 · 小红书",
+    label: "本月准备发布 · 小红书",
     headline: "一座城市的味道，如何被重新装进口袋？",
-    lead: "用一个具体味道、一个真实人物和一段现场体验，把阅读兴趣承接到到访理由。",
+    lead: "用一个具体味道、一个人物故事和一段现场体验，让读完内容的人产生到店理由。",
     preview: "小红书发布预览",
-    image: "../assets/place-dining.jpg",
+    image: "assets/place-dining.jpg",
   },
   wechat: {
-    label: "本月主题长文 · 公众号",
+    label: "本月准备发布 · 公众号",
     headline: "地方食物，不只是被保存，也可以重新进入城市生活",
-    lead: "从项目定位、在地食物和空间运营三个层次，解释本月经营战役为什么值得发生。",
+    lead: "从项目介绍、地方食物和场地使用三个方面，说明这个月为什么值得来。",
     preview: "公众号长文预览",
-    image: "../assets/place-market.jpg",
+    image: "assets/place-market.jpg",
   },
   video: {
-    label: "本月现场内容 · 短视频",
+    label: "本月准备发布 · 短视频",
     headline: "跟着一条味觉路线，在地方口袋里走一圈",
-    lead: "用人物、产品和空间动线构成短视频脚本，真实商户和拍摄素材确认后再进入制作。",
+    lead: "用人物、产品和现场路线组成短视频脚本，确定参加商户和拍摄图片后再开始制作。",
     preview: "短视频封面预览",
-    image: "../assets/place-hero.jpg",
+    image: "assets/place-hero.jpg",
   },
 };
 
 const leadProfiles = {
   "local-food": {
     title: "地方食物代表品牌",
-    reason: "具备真实产地、人物和产品内容，可形成持续市场表达。",
-    location: "主入口内容展示位 / 可体验餐饮点位",
-    verify: "经营条件、现场适配、品牌意愿与真实铺位",
-    action: "补充真实品牌名单后生成一对一招商材料",
+    reason: "有明确产地、人物和产品故事，可以持续对外介绍。",
+    location: "主入口内容展示位 / 可以体验的餐饮位置",
+    verify: "需要哪些合作条件、是否适合现场、品牌是否愿意参加、有没有合适铺位",
+    action: "填写具体品牌名称，再准备针对这个品牌的介绍材料",
   },
   creator: {
     title: "主理人餐饮品牌",
-    reason: "人物表达鲜明，适合与月度主题、限定产品和现场活动共同运营。",
-    location: "主题餐饮区 / 周末活动协同点位",
-    verify: "产品稳定性、活动参与方式、团队执行能力与经营条件",
-    action: "先形成候选品牌清单，再验证真实合作意愿",
+    reason: "有鲜明的主理人故事，适合一起做月度主题、限定产品和现场活动。",
+    location: "主题餐饮区 / 周末活动位置",
+    verify: "产品是否稳定、愿意怎样参加活动、团队能否配合、需要什么条件",
+    action: "先填写具体品牌名称，再联系确认是否愿意参加",
   },
   culture: {
     title: "地方文化产品品牌",
-    reason: "可把地方文化转成游客可理解、可携带、可消费的城市礼物。",
-    location: "游客动线节点 / 内容零售组合区",
-    verify: "产品价格带、游客需求、陈列方式和铺位适配",
-    action: "补充真实品牌与产品资料后形成铺位匹配建议",
+    reason: "能把地方文化做成游客看得懂、方便携带、愿意购买的产品。",
+    location: "游客经过的位置 / 内容和零售组合区",
+    verify: "产品价格、游客是否需要、怎样陈列、适合哪个铺位",
+    action: "填写具体品牌和产品资料，再建议适合的铺位",
   },
 };
 
 const briefFallback = {
-  "brief-summary": { index: "摘要", title: "本月经营战役摘要", body: "围绕整体经营规划，以地方食物内容带动到访与消费，同时验证商户协同与招商表达的实际效果。", quote: "强内容驱动强运营，强运营反哺招商、租赁与空间资产价值。" },
-  "brief-goal": { index: "01 / 05", title: "经营目标", body: "以强内容带动到访与消费，并验证内容运营对招商线索和商户协同的促进作用。", quote: "强内容驱动强运营，强运营反哺招商、租赁与空间资产价值。" },
-  "brief-audience": { index: "02 / 05", title: "目标客群", body: "本月同时面向本地消费者、游客与潜在商户，以消费现场为核心，同时建立对经营合作方有价值的项目表达。", quote: "先让人理解为什么值得来，再让商户理解为什么值得加入。" },
-  "brief-content": { index: "03 / 05", title: "内容方向", body: "围绕地方食物如何进入当代城市生活，持续生产人物、产品、空间与现场体验内容，并适配不同传播平台。", quote: "每一项内容都要能够落到真实人物、真实产品或真实空间。" },
-  "brief-operations": { index: "04 / 05", title: "商户协同", body: "把内容主线转成参与商户、限定产品、现场活动、陈列和联合传播任务，负责人和截止时间在批准后确认。", quote: "内容不是发布即结束，而是现场经营动作的起点。" },
-  "brief-measure": { index: "05 / 05", title: "验证方式", body: "持续记录发布采用、商户完成、到店消费、招商反馈和空间使用证据；数据缺失时明确显示未采集。", quote: "不把可能相关写成确定有效，不使用未经核实的数据替代真实结果。" },
+  "brief-summary": { index: "概要", title: "本月计划", body: "用地方食物内容吸引顾客到店和消费，同时让商户参加，并帮助招商人员联系合适品牌。", quote: "先用好内容吸引顾客，再用实际结果帮助商户和品牌合作。" },
+  "brief-goal": { index: "01 / 05", title: "本月目标", body: "用内容吸引顾客到店和消费，并观察内容是否帮助商户参加和品牌联系。", quote: "先让顾客愿意来，再让商户和品牌愿意加入。" },
+  "brief-audience": { index: "02 / 05", title: "本月最重要的人群", body: "本月同时考虑本地顾客、游客和可能加入的商户，先说清楚为什么值得来，再说明为什么值得加入。", quote: "先让人理解为什么值得来，再让商户理解为什么值得加入。" },
+  "brief-content": { index: "03 / 05", title: "准备发布的内容", body: "围绕地方食物如何进入当代城市生活，持续介绍人物、产品、场地和现场体验，并分别准备适合不同平台的版本。", quote: "每项内容都要来自具体人物、产品或场地。" },
+  "brief-operations": { index: "04 / 05", title: "商户要做什么", body: "把本月主题分成商户参加、限定产品、现场活动、陈列和转发任务，确定负责人和完成日期。", quote: "内容发布后，还要有人把它落实到产品和现场。" },
+  "brief-measure": { index: "05 / 05", title: "怎么判断有没有效果", body: "记录内容是否发布、商户是否完成、顾客是否到店消费、品牌是否回复以及场地使用情况；没有数据就显示还没记录。", quote: "没有记录的数据不当作已经发生。" },
 };
 
 const ownerStageConclusions = {
-  overall_plan: "项目资料和内容已经准备好，但还没有开始第一轮真实测试。",
+  overall_plan: "项目资料和内容已经准备好，但还没有开始第一轮小范围测试。",
   content_growth: "内容已经准备好，下一步要先发布一小批，再看顾客是否愿意到店。",
   merchant_collaboration: "商户任务已经准备好，下一步要先确定第一批参与商户。",
-  merchant_attraction: "招商材料已经准备好，下一步要先补充真实品牌名单并开始接触。",
+  merchant_attraction: "品牌介绍材料已经准备好，下一步要先填写具体品牌名称并开始联系。",
 };
 
 const ownerMetricDetails = {
   content: {
     title: "已准备内容", status: "接近目标", actual: "6 项", target: "8 项", gap: "-2 项", trend: "较上期增加 2 项",
-    insight: "内容供给已经接近本月目标，但尚未转成真实发布和现场测试。",
-    reason: "现有内容已经整理完成，首批测试范围和执行安排仍待确认。",
-    action: "从现有内容中选择 3 项进入一周小范围测试。",
+    insight: "内容数量已经接近本月目标，但还没有真正发布或放到现场测试。",
+    reason: "现有内容已经整理完成，但第一批测试内容和安排还没有确定。",
+    action: "从现有内容中选择 3 项，做一周小范围测试。",
   },
   testing: {
     title: "已投入测试", status: "低于目标", actual: "0 项", target: "3 项", gap: "-3 项", trend: "连续两周没有变化",
-    insight: "本月尚未有内容进入真实测试，因此没有形成到店或消费反馈。",
-    reason: "费用上限、测试内容和首批参与商户尚未同时确认。",
+    insight: "这个月还没有内容开始测试，所以还没有到店或消费反馈。",
+    reason: "最多花多少钱、测试哪些内容、哪些商户先参加，这三件事还没有同时确定。",
     action: "本周完成三项决定，并启动第一批 3 项内容测试。",
   },
   merchants: {
-    title: "已登记参与商户", status: "待启动", actual: "0 家", target: "5 家", gap: "-5 家", trend: "本月尚未登记",
-    insight: "商户参与尚未开始，产品、图片和现场协同信息仍为空。",
-    reason: "真实参与名单和每家商户需要完成的任务尚未确定。",
+    title: "已经确定参加的商户", status: "还没开始", actual: "0 家", target: "5 家", gap: "-5 家", trend: "本月还没有填写",
+    insight: "商户还没有开始参加，产品、图片和现场配合信息还没填写。",
+    reason: "参加商户名单和每家商户要做的事还没有确定。",
     action: "先选 2–3 家配合度高的商户开始，完成后再扩大范围。",
   },
   leads: {
-    title: "已登记招商线索", status: "待启动", actual: "0 条", target: "3 条", gap: "-3 条", trend: "本月尚未登记",
-    insight: "招商画像和通用材料已经准备，但还没有真实品牌进入跟进。",
-    reason: "真实品牌名单、铺位条件和经营反馈证据仍未补齐。",
-    action: "先补 3 个真实品牌名单，再形成逐一匹配和联系计划。",
+    title: "已经联系的品牌", status: "还没开始", actual: "0 个", target: "3 个", gap: "-3 个", trend: "本月还没有填写",
+    insight: "通用介绍材料已经准备好，但还没有开始联系具体品牌。",
+    reason: "具体品牌名称、铺位条件和到店消费情况还没有补齐。",
+    action: "先填写 3 个具体品牌，再逐一确认是否适合并安排联系。",
   },
 };
 
 const ownerReportDetails = {
   weekly: {
-    type: "周报简报", title: "8月第2周经营简报", conclusion: "准备工作已经完成，本周关键是启动第一轮小范围验证。",
-    points: ["进展|已有 6 项内容可以使用。", "问题|测试、商户参与和招商线索仍未启动。", "下一步|完成三项老板决定并进入一周验证。"],
+    type: "本周情况", title: "8月第2周项目报告", conclusion: "准备工作已经完成，本周最重要的是开始第一轮小范围测试。",
+    points: ["已经完成|已有 6 项内容可以使用。", "还没完成|测试、商户参加和品牌联系都还没开始。", "下一步|完成三项老板决定，再做一周小范围测试。"],
   },
   monthly: {
-    type: "月报简报", title: "2026年8月经营简报", conclusion: "本月暂处于准备转执行阶段，不能把准备成果当作经营成效。",
-    points: ["内容|6 项内容可用，0 项投入测试。", "协同|参与商户和招商线索尚未登记。", "建议|先完成一轮真实执行，再判断是否扩大投入。"],
+    type: "本月情况", title: "2026年8月项目报告", conclusion: "这个月还在准备阶段，准备好不等于已经产生了顾客和销售结果。",
+    points: ["内容|6 项可以使用，0 项开始测试。", "商户和品牌|参加商户和已联系品牌都还没填写。", "下一步|先完成一次小范围测试，再决定要不要增加投入。"],
   },
 };
 
@@ -206,7 +213,7 @@ function renderRoleNavigation(role) {
     button.classList.toggle("active", item.key === state.navKey);
     return button;
   });
-  root.setAttribute("aria-label", `${navigation.label}栏目`);
+  root.setAttribute("aria-label", `${navigation.label}导航`);
   root.replaceChildren(label, ...buttons);
 }
 
@@ -240,7 +247,7 @@ function parseChineseMonth(value) {
 }
 
 function shortened(value, limit = 86) {
-  const text = String(value || "未采集").trim();
+  const text = String(value || "还没记录").trim();
   return text.length > limit ? `${text.slice(0, limit)}…` : text;
 }
 
@@ -322,7 +329,7 @@ function updateInputSummary() {
   $("#summaryGoal").textContent = goalLabels[state.goal];
   $("#summaryAudience").textContent = audienceLabels[state.audience];
   $("#summaryBudget").textContent = budgetLabels[state.budget] || state.budget;
-  $("#summaryPriority").textContent = state.priority;
+  $("#summaryPriority").textContent = priorityLabels[state.priority] || state.priority;
 }
 
 function updateWizard() {
@@ -331,7 +338,10 @@ function updateWizard() {
   $("#wizardProgressText").textContent = `${state.step} / 5`;
   $("#wizardProgressBar").style.width = `${state.step * 20}%`;
   $("#wizardBack").disabled = state.step === 1;
-  $("#wizardNext").textContent = state.step === 5 ? "生成本月方案" : "下一步";
+  const nextLabels = ["", "继续选择人群", "继续选择预算", "继续选择先做的事", "继续填写本月变化", "生成本月计划"];
+  const backLabels = ["", "返回上一步", "返回选择目标", "返回选择人群", "返回选择预算", "返回选择先做的事"];
+  $("#wizardNext").textContent = nextLabels[state.step];
+  $("#wizardBack").textContent = backLabels[state.step];
   updateInputSummary();
 }
 
@@ -385,7 +395,7 @@ function buildBriefSections() {
     },
     "brief-audience": {
       ...briefFallback["brief-audience"],
-      body: `本月重点客群为${itemByLabel(campaign, "重点客群")?.value || audienceLabels[state.audience]}。本月方案将围绕其到访、消费和合作判断组织内容。`,
+      body: `本月最重要的人群是${itemByLabel(campaign, "重点客群")?.value || audienceLabels[state.audience]}。本月计划会围绕他们是否愿意到店、消费或合作来准备内容。`,
     },
     "brief-content": {
       ...briefFallback["brief-content"],
@@ -467,7 +477,7 @@ function renderMerchantStep() {
     indicator.classList.toggle("active", state.merchantCompleted < 3 && step === state.merchantStep);
     indicator.classList.toggle("complete", step <= state.merchantCompleted);
     const status = indicator.querySelector("small");
-    if (status) status.textContent = step <= state.merchantCompleted ? "已完成" : step === state.merchantStep ? "正在进行" : "尚未开始";
+    if (status) status.textContent = step <= state.merchantCompleted ? "已完成" : step === state.merchantStep ? "正在填写" : "还没开始";
   });
   $("#merchantProgressValue").textContent = `${state.merchantCompleted} / 3`;
   $("#merchantProgressText").textContent = state.merchantCompleted === 3 ? "已全部提交，等待项目方确认" : `正在完成第 ${state.merchantStep} 项`;
@@ -505,34 +515,34 @@ function ownerAnalysisResponse(prompt) {
   const leadCount = $("#ownerLeadCount")?.textContent || "--";
 
   if (/异常|风险|问题/.test(question)) {
-    return "现在最大的风险是准备工作已经完成，但还没有开始小范围执行，所以暂时看不到顾客和商户的真实反应。";
+    return "现在最大的问题是准备工作已经完成，但还没有开始小范围测试，所以暂时看不到顾客和商户的反应。";
   }
   if (/为什么|原因/.test(question)) {
-    return "经营验证还没有开始，主要因为测试内容、费用上限和首批参与商户尚未同时确认，任何一项缺失都会阻塞真实执行。";
+    return "第一轮测试还没有开始，主要因为测试内容、费用上限和第一批参加的商户还没有同时确定。";
   }
   if (/趋势|指标|优先/.test(question)) {
-    return "最需要优先改善的是“已投入测试”。内容准备已经达到 6 项，但测试仍为 0；先让内容进入真实场景，其他指标才可能变化。";
+    return "最需要先改善的是“已投入测试”。内容已经准备了 6 项，但测试仍为 0；先让内容进入现场，其他数字才可能变化。";
   }
   if (/下周|下一步|建议/.test(question)) {
-    return "下周先完成三项决定，再选择 3 项内容和 2–3 家商户做一周小范围验证，同时记录第一条顾客或商户反馈。";
+    return "下周先完成三项决定，再选择 3 项内容和 2–3 家商户做一周小范围测试，同时记录第一条顾客或商户反馈。";
   }
   if (/决策|决定|拍板/.test(question)) {
-    return "现在只需要确认三件事：内容费用上限、真实内容测试范围和首批参与商户；其余事项暂不应扩大。";
+    return "现在只需要确认三件事：最多花多少钱、先测试哪些内容、哪些商户先参加；其他事情先不要扩大。";
   }
   if (/月报|报告|总结/.test(question)) {
-    return "本月已完成内容与项目资料准备，但真实经营闭环尚未发生，因此月报应聚焦准备结果、数据缺口和下一阶段决策。";
+    return "这个月已经准备好内容和项目资料，但还没有完成一次实际测试。报告应该说明准备好了什么、还缺什么、下个月要决定什么。";
   }
-  return `目前有 ${contentCount} 项内容可用，${adoptedCount} 项已经投入测试。下一步先完成小范围执行，再记录第一条顾客或商户反馈。`;
+  return `目前有 ${contentCount} 项内容可以使用，${adoptedCount} 项已经开始测试。下一步先完成一次小范围测试，再记录第一条顾客或商户反馈。`;
 }
 
 function generateOwnerAnalysis(prompt) {
   const input = $("#ownerAiPrompt");
   const submit = $("#ownerAiSubmit");
-  const question = String(prompt || input?.value || "分析本月最重要的经营问题").trim();
+  const question = String(prompt || input?.value || "这个月最需要先解决什么？").trim();
   if (input) input.value = question;
   if (submit) submit.disabled = true;
   const answer = $("#ownerAiAnswer");
-  if (answer) answer.innerHTML = "<span>AI 回答</span><p>正在分析当前经营指标…</p>";
+  if (answer) answer.innerHTML = "<span>AI 回答</span><p>正在查看当前项目数据…</p>";
   window.setTimeout(() => {
     if (answer) answer.innerHTML = `<span>AI 回答 · ${question}</span><p>${ownerAnalysisResponse(question)}</p>`;
     if (submit) submit.disabled = false;
@@ -546,12 +556,12 @@ function renderResult(result) {
   const campaign = sectionById("campaign");
   const assetValue = sectionById("asset_value");
   $("#executiveConclusion").textContent = ownerStageConclusions[state.goal] || campaign?.summary || view.value_statement;
-  $("#ownerAiReason").textContent = "依据当前项目资料、本月目标和已登记经营数据。";
+  $("#ownerAiReason").textContent = "根据当前项目资料、本月目标和已经填写的数据得出。";
   const assetConclusion = itemByLabel(assetValue, "资产价值结论")?.value;
   if (assetConclusion && assetConclusion !== "无法判断；需要真实、连续、可追溯的数据验证。") {
     $(".insight-band h2").textContent = assetConclusion;
   }
-  $("#adoptResult").textContent = "确认采用";
+  $("#adoptResult").textContent = "使用这版计划";
   $("#adoptResult").disabled = false;
   renderProjectContext();
   renderAnalysis();
@@ -595,7 +605,7 @@ function renderOwnerDashboard(delivery) {
   setOwnerChart("ownerChartAdopted", adoptedCount, Number(contentCount) ? (Number(adoptedCount) / Number(contentCount)) * 100 : 0);
   setOwnerChart("ownerChartMerchant", merchantKnown ? merchantCount : "--", merchantKnown ? Number(merchantCount) * 20 : 0);
   setOwnerChart("ownerChartLead", leadKnown ? leadCount : "--", leadKnown ? Number(leadCount) * 20 : 0);
-  $("#ownerAiReason").textContent = `已有 ${contentCount} 项内容可以使用，但投入测试仍为 ${adoptedCount}；首批执行范围尚未同时确认。`;
+  $("#ownerAiReason").textContent = `已有 ${contentCount} 项内容可以使用，但开始测试的仍为 ${adoptedCount} 项；第一批测试内容和商户还没有同时确定。`;
 
   const approvalItems = String(itemByLabel(decisionSection, "批准事项")?.value || "")
     .split(/[、，,]/)
@@ -615,7 +625,7 @@ async function generatePreview({ quiet = false } = {}) {
   const next = $("#wizardNext");
   const original = next.textContent;
   next.disabled = true;
-  next.textContent = "正在生成";
+  next.textContent = "正在生成本月计划";
   try {
     const response = await fetch("/api/client-preview/generate", {
       method: "POST",
@@ -624,7 +634,7 @@ async function generatePreview({ quiet = false } = {}) {
     });
     const result = await response.json();
     if (!response.ok || result.status !== "client_preview_generated_mock_locked") {
-      throw new Error(result.errors?.[0]?.message || `生成失败（${response.status}）`);
+      throw new Error("暂时无法生成本月计划，请稍后再试");
     }
     renderResult(result);
     closeWizard();
@@ -633,7 +643,7 @@ async function generatePreview({ quiet = false } = {}) {
     document.querySelectorAll("[data-role]").forEach((item) => item.classList.toggle("active", item.dataset.role === "owner"));
     renderRoleNavigation("owner");
     showQuestion("q1");
-    if (!quiet) showToast("本月方案已生成，请直接审核结果");
+    if (!quiet) showToast("本月计划已经生成，请查看结果");
   } catch (error) {
     showToast(error.message);
   } finally {
@@ -645,12 +655,12 @@ async function generatePreview({ quiet = false } = {}) {
 
 function exportResult() {
   if (!state.result) {
-    showToast("方案尚未完成，请稍后再试");
+    showToast("本月计划还没生成，请先填写本月变化");
     return;
   }
   const payload = buildPayload();
   const view = state.result.customer_view;
-  const lines = [`# ${payload.project_name}｜${formatMonth(payload.month)}经营方案`, "", view.value_statement, ""];
+  const lines = [`# ${payload.project_name}｜${formatMonth(payload.month)}本月计划`, "", view.value_statement, ""];
   view.sections.forEach((section) => {
     lines.push(`## ${section.title}`, "", section.summary, "");
     section.items.forEach((item) => lines.push(`- **${item.label}**：${item.value}（${stateLabels[item.state] || item.state}）`));
@@ -661,12 +671,12 @@ function exportResult() {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "地方口袋_本月经营方案.md";
+  anchor.download = "地方口袋_本月计划.md";
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-  showToast("本月经营方案已导出");
+  showToast("本月计划已经下载");
 }
 
 function drawTrendPlaceholder() {
@@ -844,7 +854,7 @@ document.querySelectorAll("[data-role]").forEach((button) => button.addEventList
     renderRoleNavigation(state.role);
     navigateRoleItem(firstItem);
   }
-  showToast(`已切换到${roleLabels[state.role]}视图`);
+  showToast(`已切换到${roleLabels[state.role]}页面`);
 }));
 
 document.querySelectorAll(".merchant-step-panel").forEach((form) => form.addEventListener("submit", (event) => event.preventDefault()));
@@ -852,7 +862,7 @@ document.querySelectorAll("[data-merchant-next]").forEach((button) => button.add
   state.merchantCompleted = Math.max(state.merchantCompleted, state.merchantStep);
   state.merchantStep = Math.min(3, state.merchantStep + 1);
   renderMerchantStep();
-  showToast("已保存，请继续下一项");
+  showToast("已经保存，请继续填写下一项");
 }));
 document.querySelectorAll("[data-merchant-prev]").forEach((button) => button.addEventListener("click", () => {
   state.merchantStep = Math.max(1, state.merchantStep - 1);
@@ -861,9 +871,9 @@ document.querySelectorAll("[data-merchant-prev]").forEach((button) => button.add
 $("[data-merchant-submit]").addEventListener("click", (event) => {
   state.merchantCompleted = 3;
   renderMerchantStep();
-  event.currentTarget.textContent = "已提交";
+  event.currentTarget.textContent = "已提交给项目负责人";
   event.currentTarget.disabled = true;
-  showToast("三项任务已提交，等待项目方确认");
+  showToast("三项内容已经提交，等待项目负责人确认");
 });
 document.querySelectorAll("[data-merchant-action]").forEach((button) => button.addEventListener("click", () => {
   showToast(`已打开：${button.dataset.merchantAction}`);
@@ -875,21 +885,21 @@ $("[data-role-exit]").addEventListener("click", () => {
   renderRoleNavigation("owner");
   showQuestion("q1");
 });
-$("[data-feedback-start]").addEventListener("click", () => showToast("已打开首轮真实反馈记录准备"));
+$("[data-feedback-start]").addEventListener("click", () => showToast("已经打开顾客和商户反馈记录"));
 
 $("#exportResult").addEventListener("click", exportResult);
 document.querySelectorAll("[data-export-owner-report]").forEach((button) => button.addEventListener("click", exportResult));
 $("#adoptResult").addEventListener("click", (event) => {
   state.adopted = true;
-  event.currentTarget.textContent = "已采用";
+  event.currentTarget.textContent = "已选用这版计划";
   event.currentTarget.disabled = true;
-  showToast("本月 Brief 已在当前页面确认采用");
+  showToast("已经选用这版本月计划");
 });
 
 const feedbackDialog = $("#feedbackDialog");
 $("#openFeedback").addEventListener("click", () => feedbackDialog.showModal());
 $("#saveFeedback").addEventListener("click", () => {
-  showToast($("#feedbackText").value.trim() ? "修改意见已保存在本次页面中" : "本次没有填写意见");
+  showToast($("#feedbackText").value.trim() ? "这条修改意见已经保存" : "没有填写内容，本次未保存");
 });
 
 window.addEventListener("resize", () => {
