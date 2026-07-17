@@ -34,13 +34,9 @@ const roleLabels = {
 
 const roleNavigation = {
   owner: {
-    label: "老板工作台",
+    label: "老板端",
     items: [
-      { key: "owner-overview", question: "q1", title: "项目经营总览", subtitle: "阶段、重点与风险" },
-      { key: "owner-campaign", question: "q5", title: "月度战役与审批", subtitle: "目标、预算与优先级" },
-      { key: "owner-progress", question: "q6", title: "执行与协同进展", subtitle: "运营、商户与招商" },
-      { key: "owner-value", question: "q4", title: "经营价值与趋势", subtitle: "结果、数据与趋势" },
-      { key: "owner-decisions", question: "q7", title: "下月决策与月报", subtitle: "建议、审批与导出" },
+      { key: "owner-overview", question: "q1", title: "经营脉搏", subtitle: "结果、风险与决策" },
     ],
   },
   operations: {
@@ -85,21 +81,21 @@ const platformContent = {
     headline: "一座城市的味道，如何被重新装进口袋？",
     lead: "用一个具体味道、一个真实人物和一段现场体验，把阅读兴趣承接到到访理由。",
     preview: "小红书发布预览",
-    image: "assets/place-dining.jpg",
+    image: "../assets/place-dining.jpg",
   },
   wechat: {
     label: "本月主题长文 · 公众号",
     headline: "地方食物，不只是被保存，也可以重新进入城市生活",
     lead: "从项目定位、在地食物和空间运营三个层次，解释本月经营战役为什么值得发生。",
     preview: "公众号长文预览",
-    image: "assets/place-market.jpg",
+    image: "../assets/place-market.jpg",
   },
   video: {
     label: "本月现场内容 · 短视频",
     headline: "跟着一条味觉路线，在地方口袋里走一圈",
     lead: "用人物、产品和空间动线构成短视频脚本，真实商户和拍摄素材确认后再进入制作。",
     preview: "短视频封面预览",
-    image: "assets/place-hero.jpg",
+    image: "../assets/place-hero.jpg",
   },
 };
 
@@ -141,6 +137,44 @@ const ownerStageConclusions = {
   content_growth: "内容已经准备好，下一步要先发布一小批，再看顾客是否愿意到店。",
   merchant_collaboration: "商户任务已经准备好，下一步要先确定第一批参与商户。",
   merchant_attraction: "招商材料已经准备好，下一步要先补充真实品牌名单并开始接触。",
+};
+
+const ownerMetricDetails = {
+  content: {
+    title: "已准备内容", status: "接近目标", actual: "6 项", target: "8 项", gap: "-2 项", trend: "较上期增加 2 项",
+    insight: "内容供给已经接近本月目标，但尚未转成真实发布和现场测试。",
+    reason: "现有内容已经整理完成，首批测试范围和执行安排仍待确认。",
+    action: "从现有内容中选择 3 项进入一周小范围测试。",
+  },
+  testing: {
+    title: "已投入测试", status: "低于目标", actual: "0 项", target: "3 项", gap: "-3 项", trend: "连续两周没有变化",
+    insight: "本月尚未有内容进入真实测试，因此没有形成到店或消费反馈。",
+    reason: "费用上限、测试内容和首批参与商户尚未同时确认。",
+    action: "本周完成三项决定，并启动第一批 3 项内容测试。",
+  },
+  merchants: {
+    title: "已登记参与商户", status: "待启动", actual: "0 家", target: "5 家", gap: "-5 家", trend: "本月尚未登记",
+    insight: "商户参与尚未开始，产品、图片和现场协同信息仍为空。",
+    reason: "真实参与名单和每家商户需要完成的任务尚未确定。",
+    action: "先选 2–3 家配合度高的商户开始，完成后再扩大范围。",
+  },
+  leads: {
+    title: "已登记招商线索", status: "待启动", actual: "0 条", target: "3 条", gap: "-3 条", trend: "本月尚未登记",
+    insight: "招商画像和通用材料已经准备，但还没有真实品牌进入跟进。",
+    reason: "真实品牌名单、铺位条件和经营反馈证据仍未补齐。",
+    action: "先补 3 个真实品牌名单，再形成逐一匹配和联系计划。",
+  },
+};
+
+const ownerReportDetails = {
+  weekly: {
+    type: "周报简报", title: "8月第2周经营简报", conclusion: "准备工作已经完成，本周关键是启动第一轮小范围验证。",
+    points: ["进展|已有 6 项内容可以使用。", "问题|测试、商户参与和招商线索仍未启动。", "下一步|完成三项老板决定并进入一周验证。"],
+  },
+  monthly: {
+    type: "月报简报", title: "2026年8月经营简报", conclusion: "本月暂处于准备转执行阶段，不能把准备成果当作经营成效。",
+    points: ["内容|6 项内容可用，0 项投入测试。", "协同|参与商户和招商线索尚未登记。", "建议|先完成一轮真实执行，再判断是否扩大投入。"],
+  },
 };
 
 function $(selector) {
@@ -473,6 +507,15 @@ function ownerAnalysisResponse(prompt) {
   if (/异常|风险|问题/.test(question)) {
     return "现在最大的风险是准备工作已经完成，但还没有开始小范围执行，所以暂时看不到顾客和商户的真实反应。";
   }
+  if (/为什么|原因/.test(question)) {
+    return "经营验证还没有开始，主要因为测试内容、费用上限和首批参与商户尚未同时确认，任何一项缺失都会阻塞真实执行。";
+  }
+  if (/趋势|指标|优先/.test(question)) {
+    return "最需要优先改善的是“已投入测试”。内容准备已经达到 6 项，但测试仍为 0；先让内容进入真实场景，其他指标才可能变化。";
+  }
+  if (/下周|下一步|建议/.test(question)) {
+    return "下周先完成三项决定，再选择 3 项内容和 2–3 家商户做一周小范围验证，同时记录第一条顾客或商户反馈。";
+  }
   if (/决策|决定|拍板/.test(question)) {
     return "现在只需要确认三件事：内容费用上限、真实内容测试范围和首批参与商户；其余事项暂不应扩大。";
   }
@@ -488,10 +531,10 @@ function generateOwnerAnalysis(prompt) {
   const question = String(prompt || input?.value || "分析本月最重要的经营问题").trim();
   if (input) input.value = question;
   if (submit) submit.disabled = true;
-  $("#executiveConclusion").textContent = "正在结合当前项目数据生成经营分析…";
+  const answer = $("#ownerAiAnswer");
+  if (answer) answer.innerHTML = "<span>AI 回答</span><p>正在分析当前经营指标…</p>";
   window.setTimeout(() => {
-    $("#executiveConclusion").textContent = ownerAnalysisResponse(question);
-    $("#ownerAiReason").textContent = `已回答：${question}`;
+    if (answer) answer.innerHTML = `<span>AI 回答 · ${question}</span><p>${ownerAnalysisResponse(question)}</p>`;
     if (submit) submit.disabled = false;
   }, 260);
 }
@@ -540,11 +583,19 @@ function renderOwnerDashboard(delivery) {
   const leadCount = leadKnown ? displayCount(leadValue) : "--";
   $("#ownerMerchantCount").textContent = merchantCount;
   $("#ownerLeadCount").textContent = leadCount;
+  if ($("#ownerMetricContentActual")) $("#ownerMetricContentActual").textContent = contentCount;
+  if ($("#ownerMetricContentGap")) $("#ownerMetricContentGap").textContent = String(Number(contentCount) - 8);
+  if ($("#ownerMetricTestingActual")) $("#ownerMetricTestingActual").textContent = adoptedCount;
+  if ($("#ownerMetricTestingGap")) $("#ownerMetricTestingGap").textContent = String(Number(adoptedCount) - 3);
+  if ($("#ownerMetricMerchantActual")) $("#ownerMetricMerchantActual").textContent = merchantKnown ? merchantCount : "0";
+  if ($("#ownerMetricMerchantGap")) $("#ownerMetricMerchantGap").textContent = String((merchantKnown ? Number(merchantCount) : 0) - 5);
+  if ($("#ownerMetricLeadActual")) $("#ownerMetricLeadActual").textContent = leadKnown ? leadCount : "0";
+  if ($("#ownerMetricLeadGap")) $("#ownerMetricLeadGap").textContent = String((leadKnown ? Number(leadCount) : 0) - 3);
   setOwnerChart("ownerChartContent", contentCount, Number(contentCount) > 0 ? 100 : 0);
   setOwnerChart("ownerChartAdopted", adoptedCount, Number(contentCount) ? (Number(adoptedCount) / Number(contentCount)) * 100 : 0);
   setOwnerChart("ownerChartMerchant", merchantKnown ? merchantCount : "--", merchantKnown ? Number(merchantCount) * 20 : 0);
   setOwnerChart("ownerChartLead", leadKnown ? leadCount : "--", leadKnown ? Number(leadCount) * 20 : 0);
-  $("#ownerAiReason").textContent = `目前有 ${contentCount} 项内容可用，${adoptedCount} 项已经投入测试；下一步先完成小范围执行，再记录顾客或商户反馈。`;
+  $("#ownerAiReason").textContent = `已有 ${contentCount} 项内容可以使用，但投入测试仍为 ${adoptedCount}；首批执行范围尚未同时确认。`;
 
   const approvalItems = String(itemByLabel(decisionSection, "批准事项")?.value || "")
     .split(/[、，,]/)
@@ -552,20 +603,11 @@ function renderOwnerDashboard(delivery) {
     .filter(Boolean)
     .slice(0, 3);
   if (approvalItems.length) {
-    const decisions = approvalItems.map((item, index) => {
+    approvalItems.forEach((item, index) => {
       const display = ownerDecisionSuggestion(item);
-      const button = document.createElement("button");
-      button.type = "button";
-      button.append(
-        create("i", "", String(index + 1).padStart(2, "0")),
-        create("span", "", display.title),
-        create("small", "", display.help),
-        create("b", "status pending", "要做"),
-      );
-      button.addEventListener("click", () => showToast("已打开该决策事项"));
-      return button;
+      const title = $(`#ownerDecisionTitle${index + 1}`);
+      if (title) title.textContent = display.title;
     });
-    $("#ownerDecisionList").replaceChildren(...decisions);
   }
 }
 
@@ -581,7 +623,7 @@ async function generatePreview({ quiet = false } = {}) {
       body: JSON.stringify(buildPayload()),
     });
     const result = await response.json();
-    if (!response.ok || result.status !== "client_preview_ready") {
+    if (!response.ok || result.status !== "client_preview_generated_mock_locked") {
       throw new Error(result.errors?.[0]?.message || `生成失败（${response.status}）`);
     }
     renderResult(result);
@@ -703,6 +745,38 @@ $("#ownerAiForm").addEventListener("submit", (event) => {
 });
 document.querySelectorAll("[data-owner-prompt]").forEach((button) => button.addEventListener("click", () => {
   generateOwnerAnalysis(button.dataset.ownerPrompt);
+}));
+document.querySelectorAll("[data-owner-metric]").forEach((button) => button.addEventListener("click", () => {
+  const metric = ownerMetricDetails[button.dataset.ownerMetric];
+  const dialog = $("#ownerMetricDialog");
+  if (!metric || !dialog) return;
+  $("#ownerMetricDialogStatus").textContent = metric.status;
+  $("#ownerMetricDialogTitle").textContent = metric.title;
+  $("#ownerMetricDialogActual").textContent = metric.actual;
+  $("#ownerMetricDialogTarget").textContent = metric.target;
+  $("#ownerMetricDialogGap").textContent = metric.gap;
+  $("#ownerMetricDialogTrend").textContent = metric.trend;
+  $("#ownerMetricDialogInsight").textContent = metric.insight;
+  $("#ownerMetricDialogReason").textContent = metric.reason;
+  $("#ownerMetricDialogAction").textContent = metric.action;
+  dialog.showModal();
+}));
+document.querySelectorAll("[data-owner-report]").forEach((button) => button.addEventListener("click", () => {
+  const report = ownerReportDetails[button.dataset.ownerReport];
+  const dialog = $("#ownerReportDialog");
+  if (!report || !dialog) return;
+  $("#ownerReportType").textContent = report.type;
+  $("#ownerReportTitle").textContent = report.title;
+  $("#ownerReportConclusion").textContent = report.conclusion;
+  $("#ownerReportPoints").replaceChildren(...report.points.map((item, index) => {
+    const [label, value] = item.split("|");
+    const row = create("p");
+    const copy = create("span");
+    copy.append(create("b", "", label), document.createTextNode(value));
+    row.append(create("i", "", String(index + 1).padStart(2, "0")), copy);
+    return row;
+  }));
+  dialog.showModal();
 }));
 document.querySelectorAll("[data-open-wizard]").forEach((button) => button.addEventListener("click", openWizard));
 $("#closeWizard").addEventListener("click", closeWizard);

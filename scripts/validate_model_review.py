@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "review-manifest.json"
 MODEL_REVIEW = ROOT / "MODEL_REVIEW.md"
-EXPECTED_SCREEN_COUNT = 20
+EXPECTED_SCREEN_COUNT = 16
 
 
 def fail(message):

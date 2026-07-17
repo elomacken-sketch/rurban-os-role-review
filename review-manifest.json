@@ -13,11 +13,7 @@
     "fixture_content_only": true
   },
   "screens": [
-    {"id":"owner-overview","role":"owner","label":"项目经营总览","screenshot":"screenshots/views/owner-overview.png","actions":["处理 3 件待决定事项"]},
-    {"id":"owner-campaign","role":"owner","label":"月度战役与审批","screenshot":"screenshots/views/owner-campaign.png","actions":["切换章节","修改输入","确认采用"]},
-    {"id":"owner-progress","role":"owner","label":"执行与协同进展","screenshot":"screenshots/views/owner-progress.png","actions":["查看商户协同缺口"]},
-    {"id":"owner-value","role":"owner","label":"经营价值与趋势","screenshot":"screenshots/views/owner-value.png","actions":["记录反馈","切换时间范围","准备下月方案"]},
-    {"id":"owner-decisions","role":"owner","label":"下月决策与月报","screenshot":"screenshots/views/owner-decisions.png","actions":["给出意见","导出月报"]},
+    {"id":"owner-overview","role":"owner","label":"经营脉搏单页","screenshot":"screenshots/views/owner-overview.png","actions":["查看指标原因","展开风险与决策","问 AI","查看周报或月报"]},
     {"id":"operations-today","role":"operations","label":"今日工作台","screenshot":"screenshots/views/operations-today.png","actions":["打开任务","标记完成","查看全部任务"]},
     {"id":"operations-calendar","role":"operations","label":"内容日历与活动","screenshot":"screenshots/views/operations-calendar.png","actions":["切换筛选","打开内容"]},
     {"id":"operations-content","role":"operations","label":"内容生产","screenshot":"screenshots/views/operations-content.png","actions":["切换平台","查看完整文案"]},
