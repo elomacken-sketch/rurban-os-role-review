@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>地方口袋｜AI 结果工作台</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="ai-workspace.css">
+</head>
+<body>
+  <header class="workspace-header">
+    <a class="workspace-brand" href="./" aria-label="返回 AI 结果工作台">
+      <span>地方<br>口袋</span>
+      <strong>RURBAN OS<small>AI 结果工作台</small></strong>
+    </a>
+    <div class="project-chip">
+      <img src="assets/place-market.jpg" alt="地方口袋美食食集现场">
+      <span><small>当前项目</small><strong>地方口袋美食食集</strong></span>
+      <b><i></i>准备开始第一轮测试</b>
+      <em>2026年8月 · 演示数据</em>
+    </div>
+    <nav class="workspace-links" aria-label="页面入口">
+      <a href="../home/">查看 AI 首页</a>
+      <a href="../app/">查看高级详情</a>
+      <button type="button" id="replayDemo">重新演示生成</button>
+    </nav>
+  </header>
+
+  <main class="workspace-shell">
+    <section class="conversation-pane" aria-labelledby="conversationTitle">
+      <header class="conversation-heading">
+        <div><span>共同完成</span><h1 id="conversationTitle">和 AI 一起把结果做出来</h1></div>
+        <b><i></i>项目负责人</b>
+      </header>
+
+      <div class="conversation-thread" id="conversationThread">
+        <article class="message assistant-message">
+          <span class="message-avatar">AI</span>
+          <div><small>项目助手</small><p>我已经读取当前项目资料。你可以直接说想推动什么，我会边处理边把结果生成到右侧。</p></div>
+        </article>
+
+        <article class="message user-message">
+          <span class="message-avatar">你</span>
+          <div><small>刚刚</small><p>帮我生成并启动 2026 年 8 月第一轮内容测试方案。</p></div>
+        </article>
+
+        <section class="process-panel" id="processPanel" aria-labelledby="processTitle">
+          <header>
+            <div><span>处理过程</span><h2 id="processTitle">每一步都可以检查</h2></div>
+            <b id="processStatus">已完成</b>
+          </header>
+          <ol id="processSteps">
+            <li class="done" data-process-step="sources">
+              <i></i>
+              <details>
+                <summary><span><strong>读取现有资料</strong><small>项目定位、6 项内容、商户任务和品牌方向</small></span><b>完成</b></summary>
+                <p>使用了项目定位、本月目标、现有内容、商户配合要求和品牌类型，共 11 项已有信息。</p>
+              </details>
+            </li>
+            <li class="done" data-process-step="gaps">
+              <i></i>
+              <details>
+                <summary><span><strong>找出还缺的信息</strong><small>费用、首批商户和具体品牌名称还没确定</small></span><b>完成</b></summary>
+                <p>当前仍缺 3 项关键信息。方案会明确标记“待确认”，不会当作已经发生。</p>
+              </details>
+            </li>
+            <li class="done" data-process-step="create">
+              <i></i>
+              <details>
+                <summary><span><strong>生成四种结果</strong><small>方案、排期、商户任务和品牌联系</small></span><b>完成</b></summary>
+                <p>同一份项目信息已经整理成四种可直接查看和继续修改的结果。</p>
+              </details>
+            </li>
+            <li class="done" data-process-step="check">
+              <i></i>
+              <details>
+                <summary><span><strong>检查数字和说法</strong><small>没有补写顾客、消费、商户或品牌结果</small></span><b>完成</b></summary>
+                <p>所有尚未发生的结果都显示为“还没记录”或“待确认”，没有使用推测代替实际数据。</p>
+              </details>
+            </li>
+            <li class="done" data-process-step="ready">
+              <i></i>
+              <details>
+                <summary><span><strong>交付第一版结果</strong><small>右侧 4 项结果已经可以查看</small></span><b>完成</b></summary>
+                <p>当前为内部草稿 v0.1。你可以继续在下面提出修改，也可以直接导出。</p>
+              </details>
+            </li>
+          </ol>
+        </section>
+
+        <article class="message assistant-message result-message">
+          <span class="message-avatar">AI</span>
+          <div><small>结果已生成</small><p>第一版已经放到右侧。建议先确认费用上限和首批商户，再安排 3 项内容进入一周测试。</p></div>
+        </article>
+
+        <div class="quick-prompts" aria-label="快速修改建议">
+          <button type="button" data-quick-prompt="把本轮费用控制在 5,000 元以内">费用控制在 5,000 元以内</button>
+          <button type="button" data-quick-prompt="先做小红书、人物故事和现场路线">调整第一批内容</button>
+          <button type="button" data-quick-prompt="先整理商户任务和需要补交的资料">先看商户任务</button>
+        </div>
+      </div>
+
+      <form class="conversation-composer" id="conversationComposer">
+        <label for="conversationPrompt">继续修改或生成新结果</label>
+        <textarea id="conversationPrompt" rows="2" placeholder="例如：预算控制在 5,000 元，先做小红书和商户任务"></textarea>
+        <footer><small>本页只做演示，不会保存到项目。</small><button type="submit">发送并更新结果</button></footer>
+      </form>
+    </section>
+
+    <section class="artifact-pane" aria-labelledby="artifactTitle">
+      <header class="artifact-header">
+        <div class="artifact-title">
+          <span>本次交付</span>
+          <h2 id="artifactTitle">2026年8月第一轮内容测试</h2>
+          <p><b id="artifactVersion">v0.1</b><i>内部草稿</i><i class="checked">已经检查</i></p>
+        </div>
+        <div class="artifact-actions">
+          <button type="button" id="editArtifact">通过对话修改</button>
+          <button type="button" id="adoptArtifact">采用这版</button>
+          <button class="primary" type="button" id="exportArtifact">导出结果</button>
+        </div>
+      </header>
+
+      <nav class="artifact-tabs" aria-label="切换结果">
+        <button class="active" type="button" data-artifact="summary"><span>01</span>方案摘要</button>
+        <button type="button" data-artifact="calendar"><span>02</span>内容排期</button>
+        <button type="button" data-artifact="merchants"><span>03</span>商户任务</button>
+        <button type="button" data-artifact="leasing"><span>04</span>品牌联系</button>
+      </nav>
+
+      <div class="artifact-stage" id="artifactStage">
+        <section class="artifact-view active" data-artifact-view="summary">
+          <article class="brief-cover">
+            <div class="brief-copy">
+              <span>2026.08 · 第一轮内容测试</span>
+              <h3>用一周验证内容能否带来顾客、商户和品牌的真实反应</h3>
+              <p>先选择 3 项已有内容，小范围发布并记录反馈；没有结果前不扩大投入。</p>
+              <dl>
+                <div><dt>第一批内容</dt><dd>人物故事 / 小红书 / 现场路线</dd></div>
+                <div><dt>测试周期</dt><dd>7 天</dd></div>
+                <div><dt>费用上限</dt><dd id="budgetValue">待确认</dd></div>
+              </dl>
+            </div>
+            <img src="assets/place-dining.jpg" alt="地方口袋现场餐饮空间">
+          </article>
+
+          <div class="brief-lower">
+            <section class="test-sequence">
+              <header><span>推进顺序</span><strong>从内容到实际反馈</strong></header>
+              <ol>
+                <li class="done"><b>01</b><span><strong>选择内容</strong><small>从 6 项中选 3 项</small></span></li>
+                <li><b>02</b><span><strong>安排发布</strong><small>确定日期和负责人</small></span></li>
+                <li><b>03</b><span><strong>商户配合</strong><small>补齐图片和参加确认</small></span></li>
+                <li><b>04</b><span><strong>记录结果</strong><small>顾客、商户和品牌反馈</small></span></li>
+              </ol>
+            </section>
+            <aside class="decision-note">
+              <span>开始前需要确认</span>
+              <strong>3 件事</strong>
+              <ol>
+                <li>先测试哪 3 项内容</li>
+                <li id="decisionBudget">本轮最多花多少钱</li>
+                <li>哪些商户先参加</li>
+              </ol>
+            </aside>
+          </div>
+        </section>
+
+        <section class="artifact-view" data-artifact-view="calendar">
+          <header class="view-heading">
+            <div><span>内容排期</span><h3>一周测试安排</h3></div>
+            <p>3 项内容 · 2 个平台 · 1 次现场记录</p>
+          </header>
+          <div class="calendar-board">
+            <div class="calendar-days">
+              <span>周一<small>8月17日</small></span><span>周二<small>8月18日</small></span><span>周三<small>8月19日</small></span><span>周四<small>8月20日</small></span><span>周五<small>8月21日</small></span><span>周六<small>8月22日</small></span><span>周日<small>8月23日</small></span>
+            </div>
+            <div class="calendar-lane">
+              <b>内容</b>
+              <article class="calendar-item story" style="--start:1;--span:2"><small>人物故事</small><strong>地方食物主理人</strong><span>负责人：待确认</span></article>
+              <article class="calendar-item social" style="--start:3;--span:2"><small>小红书</small><strong>城市味觉口袋</strong><span>图片：可以使用</span></article>
+              <article class="calendar-item route" style="--start:5;--span:2"><small>现场路线</small><strong>周末味觉路线</strong><span>商户：待确认</span></article>
+            </div>
+            <div class="calendar-lane compact">
+              <b>记录</b>
+              <article class="calendar-item feedback" style="--start:7;--span:1"><small>周日</small><strong>整理反馈</strong><span>还没记录</span></article>
+            </div>
+          </div>
+          <footer class="calendar-footer"><span><i></i>可以开始：现有内容</span><span><i></i>还需确认：负责人和商户</span><strong>下一步：确定发布日期</strong></footer>
+        </section>
+
+        <section class="artifact-view" data-artifact-view="merchants">
+          <header class="view-heading">
+            <div><span>商户任务</span><h3>首批商户只需要完成 3 件事</h3></div>
+            <p>商户名称待填写 · 任务内容已准备</p>
+          </header>
+          <div class="merchant-summary">
+            <img src="assets/place-merchant.jpg" alt="地方口袋商户空间">
+            <div><span>当前缺口</span><strong>还没有确定首批参加商户</strong><p>先选择 2–3 家有明确产品、人物故事并愿意配合现场的商户。</p></div>
+            <b>0 / 3<small>已确认</small></b>
+          </div>
+          <div class="task-table" role="table" aria-label="商户任务清单">
+            <div class="task-row task-head" role="row"><span>任务</span><span>需要提交</span><span>完成时间</span><span>当前情况</span></div>
+            <div class="task-row" role="row"><strong>01 · 产品信息</strong><span>产品、价格、推荐理由</span><span>8月18日前</span><b>还没发给商户</b></div>
+            <div class="task-row" role="row"><strong>02 · 图片和故事</strong><span>产品图、人物图、品牌故事</span><span>8月19日前</span><b>还没发给商户</b></div>
+            <div class="task-row" role="row"><strong>03 · 参加方式</strong><span>内容、活动、账号转发</span><span>8月20日前</span><b>还没发给商户</b></div>
+          </div>
+          <div class="merchant-next"><span>运营下一步</span><strong>确定首批商户后，发送简单填写链接。</strong><button type="button" data-focus-chat="请帮我整理首批商户选择标准">让 AI 整理选择标准</button></div>
+        </section>
+
+        <section class="artifact-view" data-artifact-view="leasing">
+          <header class="view-heading">
+            <div><span>品牌联系</span><h3>从 3 个具体品牌开始联系</h3></div>
+            <p>方向和材料已准备 · 品牌名称待填写</p>
+          </header>
+          <div class="leasing-layout">
+            <section class="brand-directions">
+              <header><span>适合联系的方向</span><strong>每类先填 1 个品牌</strong></header>
+              <article><b>01</b><div><strong>地方食物代表品牌</strong><p>有明确产地、人物和产品故事，最适合先联系。</p></div><span>优先</span></article>
+              <article><b>02</b><div><strong>主理人餐饮品牌</strong><p>适合一起做主题、限定产品和现场活动。</p></div><span>第二批</span></article>
+              <article><b>03</b><div><strong>地方文化产品品牌</strong><p>适合游客购买、内容展示和现场零售。</p></div><span>第二批</span></article>
+            </section>
+            <aside class="material-stack">
+              <span>现在可以发送</span>
+              <article><small>材料 01</small><strong>项目介绍</strong><p>定位、本月重点和目标顾客</p></article>
+              <article><small>材料 02</small><strong>空间介绍</strong><p>场地、位置和体验方式</p></article>
+              <article><small>材料 03</small><strong>内容合作介绍</strong><p>已有内容和可以合作的方向</p></article>
+            </aside>
+          </div>
+          <div class="leasing-next"><span>下一步</span><strong>填写品牌名称、联系人和第一次联系时间。</strong><button type="button" data-focus-chat="请帮我整理第一批品牌联系表">让 AI 生成联系表</button></div>
+        </section>
+
+        <div class="artifact-generating" id="artifactGenerating" hidden>
+          <i></i><strong id="generatingTitle">正在读取现有资料</strong><small>右侧结果会随着处理过程更新</small>
+        </div>
+      </div>
+
+      <footer class="artifact-footer">
+        <span><b>使用资料</b>11 项已有信息</span>
+        <span><b>还缺</b>费用、首批商户、具体品牌</span>
+        <span><b>数据说明</b>没有实际反馈的地方保持空白</span>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="ai-workspace.js"></script>
+</body>
+</html>

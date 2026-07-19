@@ -16,6 +16,10 @@ AI_HOME_REVIEW = ROOT / "AI_HOME_REVIEW.md"
 AI_HOME_HTML = ROOT / "home" / "index.html"
 AI_HOME_JS = ROOT / "home" / "ai-home.js"
 AI_HOME_CSS = ROOT / "home" / "ai-home.css"
+AI_WORKSPACE_REVIEW = ROOT / "AI_WORKSPACE_REVIEW.md"
+AI_WORKSPACE_HTML = ROOT / "workspace" / "index.html"
+AI_WORKSPACE_JS = ROOT / "workspace" / "ai-workspace.js"
+AI_WORKSPACE_CSS = ROOT / "workspace" / "ai-workspace.css"
 EXPECTED_SCREEN_COUNT = 19
 EXPECTED_INTERACTION_IDS = {"owner-metric-detail", "owner-weekly-report", "owner-ai-answer"}
 FORBIDDEN_USER_COPY = {
@@ -53,13 +57,15 @@ def main():
         fail("MODEL_REVIEW.md is missing")
     if not VISUAL_PDF.is_file() or VISUAL_PDF.stat().st_size < 1_000_000:
         fail("visual interaction PDF is missing or unexpectedly small")
-    for path in [APP_HTML, APP_JS, PUBLIC_INDEX, COPY_TABLE, AI_HOME_REVIEW, AI_HOME_HTML, AI_HOME_JS, AI_HOME_CSS]:
+    for path in [APP_HTML, APP_JS, PUBLIC_INDEX, COPY_TABLE, AI_HOME_REVIEW, AI_HOME_HTML, AI_HOME_JS, AI_HOME_CSS, AI_WORKSPACE_REVIEW, AI_WORKSPACE_HTML, AI_WORKSPACE_JS, AI_WORKSPACE_CSS]:
         if not path.is_file():
             fail(f"required review artifact is missing: {path.name}")
 
     home_html = AI_HOME_HTML.read_text(encoding="utf-8")
     home_js = AI_HOME_JS.read_text(encoding="utf-8")
-    user_copy = APP_HTML.read_text(encoding="utf-8") + APP_JS.read_text(encoding="utf-8") + PUBLIC_INDEX.read_text(encoding="utf-8") + home_html + home_js
+    workspace_html = AI_WORKSPACE_HTML.read_text(encoding="utf-8")
+    workspace_js = AI_WORKSPACE_JS.read_text(encoding="utf-8")
+    user_copy = APP_HTML.read_text(encoding="utf-8") + APP_JS.read_text(encoding="utf-8") + PUBLIC_INDEX.read_text(encoding="utf-8") + home_html + home_js + workspace_html + workspace_js
     for value in FORBIDDEN_USER_COPY:
         if value in user_copy:
             fail(f"ordinary-user app contains forbidden copy: {value}")
@@ -82,6 +88,22 @@ def main():
     for screenshot in ["screenshots/ai-home/owner.png", "screenshots/ai-home/operations.png", "screenshots/ai-home/leasing.png"]:
         if not (ROOT / screenshot).is_file() or screenshot not in AI_HOME_REVIEW.read_text(encoding="utf-8"):
             fail(f"AI home screenshot is missing from static review: {screenshot}")
+
+    experimental_workspace = manifest.get("experimental_workspace", {})
+    if experimental_workspace.get("layout") != ["conversation", "visible_process", "artifact_canvas"]:
+        fail("AI workspace layout contract changed")
+    if experimental_workspace.get("artifact_types") != ["summary", "calendar", "merchants", "leasing"]:
+        fail("AI workspace artifact types changed")
+    if "fetch(" in workspace_js or "/api/" in workspace_js:
+        fail("AI workspace must remain frontend-only")
+    for required in ['class="conversation-pane"', 'class="artifact-pane"', "处理过程"]:
+        if required not in workspace_html:
+            fail(f"AI workspace is missing required surface: {required}")
+    workspace_review_text = AI_WORKSPACE_REVIEW.read_text(encoding="utf-8")
+    for screenshot in ["summary.png", "calendar.png", "merchants.png", "leasing.png", "generating.png"]:
+        path = ROOT / "screenshots" / "workspace" / screenshot
+        if not path.is_file() or f"screenshots/workspace/{screenshot}" not in workspace_review_text:
+            fail(f"AI workspace screenshot is missing from static review: {screenshot}")
 
     screens = manifest.get("screens", [])
     if len(screens) != EXPECTED_SCREEN_COUNT:

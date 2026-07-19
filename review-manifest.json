@@ -15,6 +15,14 @@
     "merchant_entry": false,
     "backend_connected": false
   },
+  "experimental_workspace": {
+    "entry": "https://elomacken-sketch.github.io/rurban-os-role-review/workspace/",
+    "static_review": "AI_WORKSPACE_REVIEW.md",
+    "layout": ["conversation", "visible_process", "artifact_canvas"],
+    "artifact_types": ["summary", "calendar", "merchants", "leasing"],
+    "backend_connected": false,
+    "input_persisted": false
+  },
   "data_policy": {
     "database_connected": false,
     "api_connected": false,
