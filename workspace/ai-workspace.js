@@ -1,17 +1,16 @@
 const $ = (selector) => document.querySelector(selector);
 
-const demoSteps = [
-  { key: "sources", label: "正在读取现有资料", delay: 550 },
-  { key: "gaps", label: "正在找出还缺的信息", delay: 650 },
-  { key: "create", label: "正在生成四种结果", delay: 850 },
-  { key: "check", label: "正在检查数字和说法", delay: 650 },
-  { key: "ready", label: "正在交付第一版结果", delay: 550 },
-];
-
 const state = {
-  activeArtifact: "summary",
   version: 1,
-  running: false,
+  planConfirmed: false,
+  scheduleGenerated: false,
+  busy: false,
+};
+
+const detailText = {
+  sources: "使用：项目定位、本月目标、目标顾客、6 项现有内容、商户配合要求和适合联系的品牌方向，共 11 项信息。",
+  gaps: "仍缺：本轮费用上限、首批参加商户、具体品牌名称。这些内容不会由系统自行补写。",
+  draft: "当前只生成方案草稿。发布日期、负责人、商户任务和品牌联系尚未开始。",
 };
 
 function showToast(message) {
@@ -26,197 +25,216 @@ function wait(milliseconds) {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-function setArtifact(name) {
-  state.activeArtifact = name;
-  document.querySelectorAll("[data-artifact]").forEach((button) => button.classList.toggle("active", button.dataset.artifact === name));
-  document.querySelectorAll("[data-artifact-view]").forEach((view) => view.classList.toggle("active", view.dataset.artifactView === name));
-}
-
-function setProcessState(key, status) {
-  const item = document.querySelector(`[data-process-step="${key}"]`);
-  if (!item) return;
-  item.className = status;
-  const label = item.querySelector("summary > b");
-  label.textContent = status === "done" ? "完成" : (status === "active" ? "正在处理" : "等待");
-}
-
-function resetProcess() {
-  demoSteps.forEach((step) => setProcessState(step.key, "pending"));
-  $("#processStatus").textContent = "正在处理";
-  $("#processStatus").classList.add("running");
-  $("#artifactGenerating").hidden = false;
-  $("#generatingTitle").textContent = demoSteps[0].label;
-}
-
-async function replayDemo() {
-  if (state.running) return;
-  state.running = true;
-  resetProcess();
-  $("#processPanel").scrollIntoView({ behavior: "smooth", block: "center" });
-
-  for (const step of demoSteps) {
-    demoSteps.forEach((candidate) => {
-      const item = document.querySelector(`[data-process-step="${candidate.key}"]`);
-      if (item.classList.contains("active")) setProcessState(candidate.key, "done");
-    });
-    setProcessState(step.key, "active");
-    $("#generatingTitle").textContent = step.label;
-    await wait(step.delay);
-    setProcessState(step.key, "done");
-  }
-
-  $("#processStatus").textContent = "已完成";
-  $("#processStatus").classList.remove("running");
-  $("#artifactGenerating").hidden = true;
-  state.running = false;
-  showToast("第一版结果已经重新生成");
-}
-
-function addMessage(role, text, note = "刚刚") {
-  const article = document.createElement("article");
-  article.className = `message ${role === "user" ? "user-message" : "assistant-message"}`;
-  const avatar = document.createElement("span");
-  avatar.className = "message-avatar";
+function addTurn(role, text, note = "刚刚") {
+  const section = document.createElement("section");
+  section.className = `turn ${role === "user" ? "user-turn" : "assistant-turn"}`;
+  const avatar = document.createElement("b");
   avatar.textContent = role === "user" ? "你" : "AI";
-  const content = document.createElement("div");
+  const body = document.createElement("div");
   const small = document.createElement("small");
   small.textContent = note;
   const paragraph = document.createElement("p");
   paragraph.textContent = text;
-  content.append(small, paragraph);
-  article.append(avatar, content);
-  $("#conversationThread").append(article);
-  article.scrollIntoView({ behavior: "smooth", block: "end" });
-  return article;
+  body.append(small, paragraph);
+  section.append(avatar, body);
+  $("#dynamicConversation").append(section);
+  section.scrollIntoView({ behavior: "smooth", block: "end" });
 }
 
-function addUpdateProcess() {
-  const panel = document.createElement("section");
-  panel.className = "process-panel compact-process";
-  panel.innerHTML = `<header><div><span>正在更新</span><h2>根据你的要求修改结果</h2></div><b class="running">处理中</b></header>
-    <ol>
-      <li class="done"><i></i><details><summary><span><strong>理解修改要求</strong><small>只调整你刚才提到的内容</small></span><b>完成</b></summary></details></li>
-      <li class="active"><i></i><details><summary><span><strong>更新相关结果</strong><small>其他结果保持不变</small></span><b>正在处理</b></summary></details></li>
-      <li class="pending"><i></i><details><summary><span><strong>检查修改影响</strong><small>确认数字和前后内容一致</small></span><b>等待</b></summary></details></li>
-    </ol>`;
-  $("#conversationThread").append(panel);
-  panel.scrollIntoView({ behavior: "smooth", block: "center" });
-  return panel;
+function addActivity(lines) {
+  const section = document.createElement("section");
+  section.className = "activity update-activity";
+  section.innerHTML = `<header><span>正在更新方案</span><small>只修改相关部分</small></header><ol>${lines.map((line, index) => `<li class="${index === 0 ? "current" : ""}"><i></i><span><strong>${line}</strong><small>${index === 0 ? "正在处理" : "等待前一步完成"}</small></span><em>${index === 0 ? "现在" : "等待"}</em></li>`).join("")}</ol>`;
+  $("#dynamicConversation").append(section);
+  section.scrollIntoView({ behavior: "smooth", block: "center" });
+  return section;
 }
 
-function updateBudget(prompt) {
-  const amount = prompt.match(/(?:预算|费用)?[^0-9]{0,8}([0-9][0-9,]*)\s*元?/);
-  if (!/预算|费用|花费/.test(prompt)) return false;
-  const display = amount ? `${amount[1].replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",")} 元以内` : "5,000 元以内";
-  $("#budgetValue").textContent = display;
-  $("#decisionBudget").textContent = `费用上限：${display}`;
-  return true;
+function completeActivity(section) {
+  section.querySelectorAll("li").forEach((item) => {
+    item.className = "done";
+    item.querySelector("small").textContent = "完成";
+    item.querySelector("em").textContent = "完成";
+  });
 }
 
-function chooseArtifactForPrompt(prompt) {
-  if (/商户|产品|图片|参加/.test(prompt)) return "merchants";
-  if (/品牌|招商|联系/.test(prompt)) return "leasing";
-  if (/排期|日期|小红书|视频|内容/.test(prompt)) return "calendar";
-  return "summary";
+function updateVersion() {
+  state.version += 1;
+  const label = `v0.${state.version}`;
+  $("#versionButton").textContent = label;
+  $("#documentVersion").textContent = label;
 }
 
-function responseForPrompt(prompt, artifact, budgetChanged) {
-  if (budgetChanged) return `已经把费用上限改为 ${$("#budgetValue").textContent}，并同步更新方案摘要。其他结果保持不变。`;
-  if (artifact === "merchants") return "已经切换到商户任务，并保留需要补交的产品、图片和参加确认三类信息。";
-  if (artifact === "leasing") return "已经切换到品牌联系。当前先从 3 个具体品牌开始，材料和下一步已经列好。";
-  if (artifact === "calendar") return "已经切换到内容排期。第一周安排了 3 项内容，并把负责人和商户确认保留为待补充。";
-  return `已经根据“${prompt}”更新方案摘要，并保留尚未确认的信息。`;
-}
-
-async function submitPrompt(prompt) {
-  if (state.running) {
-    showToast("当前结果还在生成，请稍等");
-    return;
+function applyPlanChange(prompt) {
+  const number = prompt.match(/([0-9][0-9,]*)\s*元/);
+  if (/费用|预算|花费/.test(prompt)) {
+    const amount = number ? number[1].replace(/,/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",") : "5,000";
+    $("#budgetText").textContent = `本轮费用控制在 ${amount} 元以内；没有反馈前不扩大投入。`;
+    $("#budgetDecision").textContent = `费用上限：${amount} 元以内`;
+    return `已经把本轮费用上限改为 ${amount} 元以内。方案仍是草稿，需要你确认后才能进入排期。`;
   }
+  if (/年轻|顾客|客群/.test(prompt)) {
+    $("#audienceText").textContent = "优先聚焦本地年轻消费者：他们更容易通过小红书和人物故事形成到访动机。游客和潜在商户作为第二观察人群。";
+    return "已经补充选择本地年轻消费者的原因。方案仍未确认，排期保持锁定。";
+  }
+  if (/3 项|三项|周期|7 天|七天/.test(prompt)) {
+    return "已经保留 3 项内容和 7 天测试周期，并明确这只是方案范围，不代表已经排期。";
+  }
+  return `已经根据“${prompt}”更新方案说明。排期和后续任务仍然保持锁定。`;
+}
+
+async function submitPlanChange(prompt) {
   const text = prompt.trim();
   if (!text) {
-    showToast("请先写下需要修改或生成的内容");
-    $("#conversationPrompt").focus();
+    showToast("请先写下需要修改的内容");
+    $("#prompt").focus();
+    return;
+  }
+  if (state.busy) {
+    showToast("当前内容还在处理，请稍等");
+    return;
+  }
+  if (state.planConfirmed) {
+    addTurn("assistant", "方案已经确认。修改核心方向前需要先重新打开方案，本页不会直接覆盖已确认版本。", "没有修改");
+    showToast("已确认方案不会被直接覆盖");
     return;
   }
 
-  state.running = true;
-  addMessage("user", text);
-  const process = addUpdateProcess();
-  $("#artifactGenerating").hidden = false;
-  $("#generatingTitle").textContent = "正在理解修改要求";
-  await wait(500);
-  const processItems = process.querySelectorAll("li");
-  processItems[1].className = "done";
-  processItems[1].querySelector("summary > b").textContent = "完成";
-  processItems[2].className = "active";
-  processItems[2].querySelector("summary > b").textContent = "正在处理";
-  $("#generatingTitle").textContent = "正在检查修改影响";
-
-  const budgetChanged = updateBudget(text);
-  const artifact = chooseArtifactForPrompt(text);
-  setArtifact(budgetChanged ? "summary" : artifact);
-  await wait(650);
-
-  processItems[2].className = "done";
-  processItems[2].querySelector("summary > b").textContent = "完成";
-  process.querySelector("header > b").textContent = "已完成";
-  process.querySelector("header > b").classList.remove("running");
-  state.version += 1;
-  $("#artifactVersion").textContent = `v0.${state.version}`;
-  $("#artifactGenerating").hidden = true;
-  addMessage("assistant", responseForPrompt(text, artifact, budgetChanged), "结果已更新");
-  $("#conversationPrompt").value = "";
-  state.running = false;
+  state.busy = true;
+  addTurn("user", text);
+  const activity = addActivity(["理解修改要求", "更新方案相关段落", "检查是否影响后续阶段"]);
+  await wait(420);
+  const items = activity.querySelectorAll("li");
+  items[0].className = "done";
+  items[0].querySelector("small").textContent = "完成";
+  items[0].querySelector("em").textContent = "完成";
+  items[1].className = "current";
+  items[1].querySelector("small").textContent = "正在处理";
+  items[1].querySelector("em").textContent = "现在";
+  await wait(480);
+  const response = applyPlanChange(text);
+  updateVersion();
+  completeActivity(activity);
+  addTurn("assistant", response, "方案已更新");
+  $("#prompt").value = "";
+  state.busy = false;
 }
 
-function downloadResult() {
-  const content = `# 地方口袋美食食集｜2026年8月第一轮内容测试\n\n` +
-    `版本：${$("#artifactVersion").textContent}｜内部草稿\n\n` +
-    `## 本轮目标\n用一周验证内容能否带来顾客、商户和品牌的真实反应。\n\n` +
-    `## 第一批内容\n- 地方食物人物故事\n- 小红书图文\n- 现场体验路线\n\n` +
-    `## 测试安排\n- 周期：7天\n- 费用上限：${$("#budgetValue").textContent}\n- 商户：先确认2至3家\n\n` +
-    `## 仍需确认\n- 具体发布日期和负责人\n- 首批参加商户\n- 3个具体品牌名称\n\n` +
-    `说明：没有实际反馈的地方保持空白。\n`;
+function confirmPlan() {
+  if (state.planConfirmed || state.busy) return;
+  state.planConfirmed = true;
+  document.body.dataset.stage = "plan-confirmed";
+  $("#headerStage").textContent = "方案已确认";
+  $("#artifactState").textContent = "已确认";
+  $("#planDocument .document-status b").textContent = "方案已确认";
+  $("#planDocument .document-status span").textContent = "尚未生成内容排期";
+  $("#approvalStatus").textContent = "方案已经确认";
+  $("#approvalHint").textContent = "排期尚未开始，需要明确点击下一步";
+  $("#confirmPlan").textContent = "方案已确认";
+  $("#confirmPlan").disabled = true;
+  $("#continueEditing").textContent = "查看已确认方案";
+  document.querySelector('[data-stage-step="plan"]').className = "complete";
+  document.querySelector('[data-stage-step="confirm"]').className = "complete";
+  document.querySelector('[data-stage-step="schedule"]').className = "ready";
+  $("#mainActivity li.current strong").textContent = "方案已经确认";
+  $("#mainActivity li.current small").textContent = "排期尚未开始，等待你明确启动";
+  $("#mainActivity li.current em").textContent = "完成";
+  $("#mainActivity li.current").className = "done";
+  $("#nextStage").hidden = false;
+  addTurn("assistant", "方案已经确认。我还没有生成排期。请明确点击“开始生成内容排期”，我再进入下一阶段。", "等待下一步");
+  $("#nextStage").scrollIntoView({ behavior: "smooth", block: "center" });
+  showToast("方案已确认，排期仍未开始");
+}
+
+function scheduleMarkup() {
+  return `<header><span>基于已确认方案生成</span><h2>第一轮内容测试排期</h2><p>2026年8月17日—23日 · 排期草稿</p></header><div class="schedule-body"><p class="schedule-note">这份排期只在方案确认后生成。负责人和参加商户仍需人工确认。</p><table class="schedule-table"><thead><tr><th>日期</th><th>内容</th><th>准备事项</th><th>当前情况</th></tr></thead><tbody><tr><td>8月17日 周一</td><td><strong>地方食物人物故事</strong><small>公众号 / 小红书</small></td><td>确认人物、文字和图片</td><td>负责人待确认</td></tr><tr><td>8月19日 周三</td><td><strong>城市味觉图文</strong><small>小红书</small></td><td>确认标题和最终图片</td><td>图片待确认</td></tr><tr><td>8月22日 周六</td><td><strong>周末现场体验路线</strong><small>现场内容</small></td><td>确认参加商户和路线</td><td>商户待确认</td></tr><tr><td>8月23日 周日</td><td><strong>整理第一轮反馈</strong><small>内部记录</small></td><td>顾客、商户和品牌反馈</td><td>尚未开始</td></tr></tbody></table></div>`;
+}
+
+async function generateSchedule() {
+  if (!state.planConfirmed || state.scheduleGenerated || state.busy) return;
+  state.busy = true;
+  document.querySelector('[data-stage-step="schedule"]').className = "active";
+  $("#headerStage").textContent = "正在生成排期";
+  $("#approvalStatus").textContent = "正在生成内容排期";
+  $("#approvalHint").textContent = "只使用已经确认的方案方向";
+  $("#startSchedule").disabled = true;
+  $("#startSchedule").textContent = "正在生成排期";
+  showToast("已经开始生成内容排期");
+  $("#generating").hidden = false;
+  addTurn("user", "开始生成内容排期。", "刚刚");
+  const activity = addActivity(["读取已确认方案", "按 7 天测试周期安排内容", "保留负责人和商户待确认项"]);
+  await wait(500);
+  const labels = ["正在读取已确认方案", "正在安排一周内容", "正在检查待确认信息"];
+  for (let index = 0; index < 3; index += 1) {
+    $("#generatingLabel").textContent = labels[index];
+    const items = activity.querySelectorAll("li");
+    items.forEach((item, itemIndex) => {
+      item.className = itemIndex < index ? "done" : (itemIndex === index ? "current" : "");
+      item.querySelector("em").textContent = itemIndex < index ? "完成" : (itemIndex === index ? "现在" : "等待");
+    });
+    await wait(520);
+  }
+  completeActivity(activity);
+  state.scheduleGenerated = true;
+  $("#scheduleDocument").innerHTML = scheduleMarkup();
+  $("#scheduleDocument").hidden = false;
+  $("#planDocument").hidden = true;
+  $("#artifactKind").textContent = "内容排期";
+  $("#artifactName").textContent = "第一轮内容测试排期";
+  $("#artifactState").textContent = "排期草稿";
+  $("#headerStage").textContent = "排期草稿已生成";
+  $("#generating").hidden = true;
+  $("#approvalStatus").textContent = "排期草稿已经生成";
+  $("#approvalHint").textContent = "负责人和参加商户仍需确认";
+  $("#continueEditing").textContent = "返回查看方案";
+  $("#confirmPlan").textContent = "确认排期前先检查";
+  $("#startSchedule").textContent = "排期已经生成";
+  document.querySelector('[data-stage-step="schedule"]').className = "active";
+  addTurn("assistant", "排期草稿已经生成。发布日期来自已确认的 7 天测试范围；负责人和参加商户仍保留为待确认。", "排期已生成");
+  state.busy = false;
+  showToast("内容排期已在确认方案后生成");
+}
+
+function planMarkdown() {
+  return `# 地方口袋美食食集｜2026年8月第一轮内容测试方案\n\n状态：${state.planConfirmed ? "已确认" : "未确认草稿"}\n版本：v0.${state.version}\n\n## 本轮目标\n用7天完成第一轮小范围内容测试，并记录真实反应。\n\n## 建议测试内容\n1. 地方食物人物故事\n2. 小红书图文\n3. 现场体验路线\n\n## 投入原则\n${$("#budgetText").textContent}\n\n## 仍需确认\n- 首批参加商户\n- 具体品牌名称\n- 排期负责人\n`;
+}
+
+function downloadMarkdown() {
+  const content = state.scheduleGenerated ? "# 第一轮内容测试排期\n\n基于已确认方案生成。\n\n- 8月17日：地方食物人物故事\n- 8月19日：城市味觉图文\n- 8月22日：周末现场体验路线\n- 8月23日：整理反馈\n" : planMarkdown();
   const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "地方口袋_2026年8月第一轮内容测试.md";
+  anchor.download = state.scheduleGenerated ? "地方口袋_第一轮内容测试排期.md" : "地方口袋_2026年8月内容测试方案.md";
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
-  showToast("结果已经导出为 Markdown 文件");
+  showToast("当前结果已经下载");
 }
 
-document.querySelectorAll("[data-artifact]").forEach((button) => button.addEventListener("click", () => setArtifact(button.dataset.artifact)));
-document.querySelectorAll("[data-quick-prompt]").forEach((button) => button.addEventListener("click", () => submitPrompt(button.dataset.quickPrompt)));
-document.querySelectorAll("[data-focus-chat]").forEach((button) => button.addEventListener("click", () => {
-  $("#conversationPrompt").value = button.dataset.focusChat;
-  $("#conversationPrompt").focus();
+document.querySelectorAll("[data-detail]").forEach((button) => button.addEventListener("click", () => {
+  $("#activityDetail").textContent = detailText[button.dataset.detail];
+  $("#activityDetail").hidden = false;
 }));
-
-$("#conversationComposer").addEventListener("submit", (event) => {
-  event.preventDefault();
-  submitPrompt($("#conversationPrompt").value);
-});
-$("#conversationPrompt").addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-    event.preventDefault();
-    submitPrompt($("#conversationPrompt").value);
+document.querySelectorAll("[data-suggestion]").forEach((button) => button.addEventListener("click", () => submitPlanChange(button.dataset.suggestion)));
+$("#composer").addEventListener("submit", (event) => { event.preventDefault(); submitPlanChange($("#prompt").value); });
+$("#confirmPlan").addEventListener("click", confirmPlan);
+$("#continueEditing").addEventListener("click", () => {
+  if (state.scheduleGenerated) {
+    $("#scheduleDocument").hidden = true;
+    $("#planDocument").hidden = false;
+    $("#artifactKind").textContent = "月度方案";
+    $("#artifactName").textContent = "2026年8月第一轮内容测试方案";
+    $("#artifactState").textContent = "已确认";
+    return;
   }
+  $("#prompt").focus();
 });
-$("#replayDemo").addEventListener("click", replayDemo);
-$("#editArtifact").addEventListener("click", () => {
-  $("#conversationPrompt").value = "请修改这份结果：";
-  $("#conversationPrompt").focus();
-  showToast("请在左侧写下需要修改的内容");
+$("#startSchedule").addEventListener("click", generateSchedule);
+$("#downloadResult").addEventListener("click", downloadMarkdown);
+$("#copyResult").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText(planMarkdown()); showToast("方案已经复制"); }
+  catch { showToast("浏览器没有开放复制权限，请使用下载"); }
 });
-$("#adoptArtifact").addEventListener("click", () => {
-  $("#adoptArtifact").textContent = "本页已标记采用";
-  showToast("只在当前演示页标记，不会写入项目");
-});
-$("#exportArtifact").addEventListener("click", downloadResult);
-
-setArtifact("summary");
+$("#versionButton").addEventListener("click", () => showToast(`当前是 v0.${state.version}，每次对话修改都会生成新版本`));

@@ -10,8 +10,8 @@
 
 ## 评审入口
 
-- [对话与结果双画布实验](https://elomacken-sketch.github.io/rurban-os-role-review/workspace/)
-- [双画布实验静态评审说明](AI_WORKSPACE_REVIEW.md)
+- [方案协作台实验](https://elomacken-sketch.github.io/rurban-os-role-review/workspace/)
+- [方案协作台静态评审说明](AI_WORKSPACE_REVIEW.md)
 - [AI 原生首页实验页](https://elomacken-sketch.github.io/rurban-os-role-review/home/)
 - [AI 原生首页静态评审说明](AI_HOME_REVIEW.md)
 - [模型专用完整评审文档](MODEL_REVIEW.md)
@@ -35,13 +35,12 @@
 - [运营首页](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/ai-home/operations.png)
 - [招商首页](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/ai-home/leasing.png)
 
-## 对话与结果双画布截图
+## 方案协作台截图
 
-- [方案摘要](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/summary.png)
-- [内容排期](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/calendar.png)
-- [商户任务](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/merchants.png)
-- [品牌联系](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/leasing.png)
-- [生成过程](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/generating.png)
+- [方案草稿](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/plan-draft.png)
+- [方案确认后](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/plan-confirmed.png)
+- [排期生成中](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/schedule-generating.png)
+- [排期生成后](https://elomacken-sketch.github.io/rurban-os-role-review/screenshots/workspace/schedule-generated.png)
 
 ## 本轮评审重点
 

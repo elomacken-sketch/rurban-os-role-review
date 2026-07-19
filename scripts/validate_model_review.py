@@ -90,17 +90,19 @@ def main():
             fail(f"AI home screenshot is missing from static review: {screenshot}")
 
     experimental_workspace = manifest.get("experimental_workspace", {})
-    if experimental_workspace.get("layout") != ["conversation", "visible_process", "artifact_canvas"]:
+    if experimental_workspace.get("layout") != ["conversation", "single_artifact", "stage_gate"]:
         fail("AI workspace layout contract changed")
-    if experimental_workspace.get("artifact_types") != ["summary", "calendar", "merchants", "leasing"]:
+    if experimental_workspace.get("artifact_types") != ["plan", "schedule_after_confirmation"]:
         fail("AI workspace artifact types changed")
+    if experimental_workspace.get("requires_plan_confirmation") is not True:
+        fail("AI workspace must require plan confirmation before scheduling")
     if "fetch(" in workspace_js or "/api/" in workspace_js:
         fail("AI workspace must remain frontend-only")
-    for required in ['class="conversation-pane"', 'class="artifact-pane"', "处理过程"]:
+    for required in ['class="chat-pane"', 'class="artifact-pane"', "处理过程", "方案确认前，不会生成排期"]:
         if required not in workspace_html:
             fail(f"AI workspace is missing required surface: {required}")
     workspace_review_text = AI_WORKSPACE_REVIEW.read_text(encoding="utf-8")
-    for screenshot in ["summary.png", "calendar.png", "merchants.png", "leasing.png", "generating.png"]:
+    for screenshot in ["plan-draft.png", "plan-confirmed.png", "schedule-generating.png", "schedule-generated.png"]:
         path = ROOT / "screenshots" / "workspace" / screenshot
         if not path.is_file() or f"screenshots/workspace/{screenshot}" not in workspace_review_text:
             fail(f"AI workspace screenshot is missing from static review: {screenshot}")

@@ -18,8 +18,9 @@
   "experimental_workspace": {
     "entry": "https://elomacken-sketch.github.io/rurban-os-role-review/workspace/",
     "static_review": "AI_WORKSPACE_REVIEW.md",
-    "layout": ["conversation", "visible_process", "artifact_canvas"],
-    "artifact_types": ["summary", "calendar", "merchants", "leasing"],
+    "layout": ["conversation", "single_artifact", "stage_gate"],
+    "artifact_types": ["plan", "schedule_after_confirmation"],
+    "requires_plan_confirmation": true,
     "backend_connected": false,
     "input_persisted": false
   },

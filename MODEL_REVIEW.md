@@ -21,8 +21,8 @@
 ## 固定入口
 
 - **本页是模型评审的唯一必读入口。**
-- [对话与结果双画布实验](https://elomacken-sketch.github.io/rurban-os-role-review/workspace/)
-- [双画布实验静态说明和五张截图](AI_WORKSPACE_REVIEW.md)
+- [方案协作台实验](https://elomacken-sketch.github.io/rurban-os-role-review/workspace/)
+- [方案协作台静态说明和四张截图](AI_WORKSPACE_REVIEW.md)
 - [AI 原生首页实验页](https://elomacken-sketch.github.io/rurban-os-role-review/home/)
 - [AI 原生首页三角色静态说明](AI_HOME_REVIEW.md)
 - **只能静态抓取时：直接打开 [视觉与交互 PDF](output/pdf/rurban-os-model-review.pdf)，不要访问 `/app/`。**
@@ -34,15 +34,14 @@
 
 交互版只提供给真正具备浏览器点击能力的模型。静态抓取工具本身不能执行按钮，因此下面同时固定展示 19 个页面与关键点击后状态；视觉细节集中在 PDF 中。
 
-## 负一、对话与结果双画布实验
+## 负一、方案协作台实验
 
-这是当前最新的独立方向实验：左侧用对话推动项目并展示可检查的处理步骤，右侧同步生成专业结果。一次生成交付方案摘要、内容排期、商户任务和品牌联系四种形式。
+这是当前最新方向：左侧通过对话修改方案，右侧一次只显示一份正式结果。方案确认前不生成排期；确认后还需要用户明确点击开始，排期才会生成。内容制作、商户任务和品牌联系继续锁定。
 
-- [方案摘要截图](screenshots/workspace/summary.png)
-- [内容排期截图](screenshots/workspace/calendar.png)
-- [商户任务截图](screenshots/workspace/merchants.png)
-- [品牌联系截图](screenshots/workspace/leasing.png)
-- [生成过程截图](screenshots/workspace/generating.png)
+- [方案草稿截图](screenshots/workspace/plan-draft.png)
+- [方案确认后截图](screenshots/workspace/plan-confirmed.png)
+- [排期生成中截图](screenshots/workspace/schedule-generating.png)
+- [排期生成后截图](screenshots/workspace/schedule-generated.png)
 - [完整实验说明](AI_WORKSPACE_REVIEW.md)
 
 ## 零、AI 原生首页实验
