@@ -1,0 +1,52 @@
+name: Temporary Rurban Japan Retail Plan Downloader 2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-plans-retail2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests pypdf
+      - name: Download
+        shell: python
+        run: |
+          import json, zipfile
+          from pathlib import Path
+          import requests
+          from pypdf import PdfReader
+          docs=[
+            ('60_埼玉市道之驿基本计划.pdf','https://www.city.saitama.lg.jp/005/002/008/001/p080311_d/fil/keikaku.pdf',30),
+            ('61_埼玉市道之驿整备计划.pdf','https://www.city.saitama.lg.jp/005/002/008/001/p125881_d/fil/seibikeikaku.pdf',30),
+          ]
+          out=Path('output'); out.mkdir(); rows=[]
+          h={'User-Agent':'Mozilla/5.0 Chrome/124 Safari/537.36','Accept':'application/pdf,*/*;q=0.8'}
+          for name,url,minp in docs:
+            p=out/name
+            r=requests.get(url,headers=h,timeout=(25,180)); r.raise_for_status(); p.write_bytes(r.content)
+            if not p.read_bytes()[:8].startswith(b'%PDF'): raise RuntimeError(name+' not pdf')
+            pages=len(PdfReader(str(p),strict=False).pages)
+            if pages<minp: raise RuntimeError(f'{name} too short {pages}')
+            rows.append({'name':name,'pages':pages,'bytes':p.stat().st_size})
+          z=out/'Rurban_OS_日本道之驿补充方案2.zip'
+          with zipfile.ZipFile(z,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as f:
+            for row in rows: f.write(out/row['name'],arcname=row['name'])
+          (out/'manifest.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(rows)
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-retail-plans-2
+          path: |
+            output/Rurban_OS_日本道之驿补充方案2.zip
+            output/manifest.json
+          compression-level: 0
+          retention-days: 1
