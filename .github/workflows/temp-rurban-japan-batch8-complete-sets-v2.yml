@@ -47,6 +47,10 @@ jobs:
                   "lambda: find_pdf(OKAZAKI_TREASURE, ('平成28年度', 'トレジャーハンティング報告')), 5)",
                   "lambda: find_pdf(OKAZAKI_TREASURE, ('平成28年度', 'トレジャーハンティング報告')), 2)",
               ),
+              (
+                  "lambda: first_valid_pdf_from_page('https://shinosaka-south.com/vision')",
+                  "'https://storage.googleapis.com/studio-design-asset-files/projects/G3qbbwRNqJ/s-1x1_a861d7f9-2861-4070-a0dc-0953e6651af6.pdf'",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
