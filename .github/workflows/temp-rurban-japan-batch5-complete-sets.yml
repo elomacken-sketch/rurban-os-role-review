@@ -1,0 +1,161 @@
+name: Temporary Rurban Japan Batch5 Complete Sets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch5-complete-sets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests pypdf
+
+      - name: Download, verify, and package
+        shell: python
+        run: |
+          import hashlib
+          import json
+          import time
+          import zipfile
+          from pathlib import Path
+
+          import requests
+          from pypdf import PdfReader
+
+          files = [
+            # 01 Kobe / Sannomiya
+            ("01_神户三宫_都心商业核心区一体化更新", "01_神户都心未来愿景_2015.pdf", "https://www.city.kobe.lg.jp/documents/13520/shouraivision_etsuran_1.pdf", 15),
+            ("01_神户三宫_都心商业核心区一体化更新", "02_三宫周边地区再整备基本构想_2015.pdf", "https://www.city.kobe.lg.jp/documents/12263/sannomiyakousou_etsuran_1.pdf", 15),
+            ("01_神户三宫_都心商业核心区一体化更新", "03_神户三宫站城空间基本计划.pdf", "https://www.city.kobe.lg.jp/documents/14630/ekimachi-kihonkeikaku_1.pdf", 30),
+            ("01_神户三宫_都心商业核心区一体化更新", "04_都心三宫再整备总体事业费及经济效果报告.pdf", "https://www.city.kobe.lg.jp/documents/28908/keizaikouka_houkoku_s_2006.pdf", 10),
+
+            # 02 Nagoya / Sakae - Hisaya Odori South
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "01_栄地区GrandVision.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/893/sakaegvhph26.5.pdf", 10),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "02_再整备构想_表纸及目录.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/hyoushimokuji.pdf", 2),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "03_再整备构想_策定说明.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/sakuteiniatatte.pdf", 1),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "04_再整备构想_再生必要性.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/saiseinohitsuyousei.pdf", 2),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "05_再整备构想_北区及电视塔区现状.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/kitaeriaterebitouerianojyoukyou.pdf", 2),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "06_再整备构想_南区现状与课题.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/minamierianogenjoutokadai.pdf", 4),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "07_再整备构想_核心概念.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/saiseibikonseputo.pdf", 4),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "08_再整备构想_空间整备方向.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/seibinohoukousei.pdf", 10),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "09_再整备构想_管理运营方向.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/kanriuneinohoukousei.pdf", 1),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "10_再整备构想_与周边城市联动方向.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/hisayaoodooritomachinorenkeinohoukousei.pdf", 1),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "11_再整备构想_参考资料.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/sankoushiryou.pdf", 4),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "12_市民意见及市政府回应.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/shiminikennogaiyoushinokangaekata.pdf", 20),
+            ("02_名古屋栄_久屋大通南区完整再整备体系", "13_民间市场Sounding调查结果.pdf", "https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/032/459/kekkagaiyou.pdf", 2),
+
+            # 03 Nikko / Kinugawa Onsen
+            ("03_日光鬼怒川温泉站前_文旅门户复合设施", "01_鬼怒川温泉站前再整备基本计划_2026.pdf", "https://www.city.nikko.lg.jp/material/files/group/27/kihonkeikaku.pdf", 50),
+
+            # 04 Yokohama / Yamashita Pier
+            ("04_横滨山下码头_滨水文旅综合再开发", "01_山下码头再开发事业计划案_2026.pdf", "https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/jigyoukeikakuan.pdf", 55),
+            ("04_横滨山下码头_滨水文旅综合再开发", "02_基本方向与事业计划案对照表.pdf", "https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/hikakuhyo.pdf", 8),
+            ("04_横滨山下码头_滨水文旅综合再开发", "03_市民意见募集实施结果_344页.pdf", "https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/shiminniken_kekka.pdf", 300),
+            ("04_横滨山下码头_滨水文旅综合再开发", "04_市民研讨会实施结果.pdf", "https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/shiminnkentoukai_kekka.pdf", 6),
+          ]
+
+          out = Path('output')
+          root = out / 'Rurban_OS_日本相对完整方案库_第05批_4套项目'
+          root.mkdir(parents=True, exist_ok=True)
+          session = requests.Session()
+          session.headers.update({
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+              'Accept': 'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          })
+
+          records = []
+          total_pages = 0
+          for idx, (folder, name, url, min_pages) in enumerate(files, 1):
+              target_dir = root / folder
+              target_dir.mkdir(parents=True, exist_ok=True)
+              target = target_dir / name
+              part = target.with_suffix('.part')
+              print(f'[{idx}/{len(files)}] {name}', flush=True)
+              error = None
+              for attempt in range(1, 5):
+                  try:
+                      with session.get(url, stream=True, timeout=(30, 300), allow_redirects=True) as r:
+                          r.raise_for_status()
+                          with open(part, 'wb') as f:
+                              for chunk in r.iter_content(chunk_size=1024 * 1024):
+                                  if chunk:
+                                      f.write(chunk)
+                      if part.stat().st_size < 30000:
+                          raise RuntimeError(f'file too small: {part.stat().st_size}')
+                      with open(part, 'rb') as f:
+                          if not f.read(8).startswith(b'%PDF'):
+                              raise RuntimeError('not a PDF header')
+                      reader = PdfReader(str(part), strict=False)
+                      pages = len(reader.pages)
+                      if pages < min_pages:
+                          raise RuntimeError(f'page count {pages} below minimum {min_pages}')
+                      # Force-read representative pages and metadata for structural validation.
+                      for p in sorted(set([0, pages // 2, pages - 1])):
+                          _ = reader.pages[p].mediabox
+                      part.replace(target)
+                      digest = hashlib.sha256(target.read_bytes()).hexdigest()
+                      total_pages += pages
+                      records.append({'folder': folder, 'name': name, 'url': url, 'pages': pages, 'bytes': target.stat().st_size, 'sha256': digest, 'status': 'accepted'})
+                      print(f'  accepted {pages} pages {target.stat().st_size/1024/1024:.1f} MB', flush=True)
+                      error = None
+                      break
+                  except Exception as e:
+                      error = f'{type(e).__name__}: {e}'
+                      if part.exists():
+                          part.unlink()
+                      if attempt < 4:
+                          time.sleep(4 * attempt)
+              if error:
+                  records.append({'folder': folder, 'name': name, 'url': url, 'status': 'failed', 'error': error})
+                  print(f'  FAILED {error}', flush=True)
+
+          accepted = [r for r in records if r['status'] == 'accepted']
+          failed = [r for r in records if r['status'] != 'accepted']
+          if failed:
+              print(json.dumps(failed, ensure_ascii=False, indent=2), flush=True)
+              raise SystemExit(f'{len(failed)} files failed; refusing incomplete package')
+          if len(accepted) != len(files):
+              raise SystemExit('unexpected accepted count')
+
+          final_zip = out / 'Rurban_OS_Japan_Batch05_4_Complete_Project_Sets.zip'
+          with zipfile.ZipFile(final_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(root.rglob('*.pdf')):
+                  zf.write(pdf, arcname=pdf.relative_to(root.parent))
+
+          # Verify the final archive by listing and testing all entries.
+          with zipfile.ZipFile(final_zip, 'r') as zf:
+              bad = zf.testzip()
+              if bad:
+                  raise SystemExit(f'archive corruption at {bad}')
+              pdf_entries = [n for n in zf.namelist() if n.lower().endswith('.pdf')]
+              if len(pdf_entries) != len(files):
+                  raise SystemExit(f'archive PDF count mismatch: {len(pdf_entries)}')
+
+          manifest = {
+              'project_sets': 4,
+              'pdf_count': len(accepted),
+              'total_pages': total_pages,
+              'zip_bytes': final_zip.stat().st_size,
+              'records': records,
+          }
+          (out / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+          print(json.dumps({k: manifest[k] for k in ('project_sets','pdf_count','total_pages','zip_bytes')}, ensure_ascii=False), flush=True)
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch5-complete-sets
+          path: |
+            output/Rurban_OS_Japan_Batch05_4_Complete_Project_Sets.zip
+            output/manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
