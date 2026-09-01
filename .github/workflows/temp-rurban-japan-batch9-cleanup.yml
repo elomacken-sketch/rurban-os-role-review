@@ -1,0 +1,36 @@
+name: Temporary Cleanup Rurban Japan Batch9
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch9-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Remove temporary release and workflow files
+        run: |
+          gh release delete rurban-japan-batch9-temp-20260901 --repo "$REPO" --yes --cleanup-tag || true
+          for path in \
+            .github/workflows/temp-rurban-japan-batch9-research.yml \
+            .github/workflows/temp-rurban-japan-batch9-build.yml \
+            .github/workflows/temp-rurban-japan-batch9-samples.yml \
+            .github/workflows/temp-rurban-japan-batch9-cleanup.yml
+          do
+            sha=$(gh api "repos/$REPO/contents/$path?ref=main" --jq .sha 2>/dev/null || true)
+            if [ -n "$sha" ]; then
+              gh api -X DELETE "repos/$REPO/contents/$path" \
+                -f message="cleanup: remove temporary batch9 workflow" \
+                -f sha="$sha" \
+                -f branch=main
+            fi
+          done
