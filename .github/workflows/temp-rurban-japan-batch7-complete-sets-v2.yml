@@ -1,0 +1,269 @@
+name: Temporary Rurban Japan Batch7 Complete Sets V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch7-complete-sets-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests pypdf beautifulsoup4 pymupdf
+
+      - name: Download verify render and package
+        shell: python
+        run: |
+          import hashlib
+          import re
+          import time
+          import zipfile
+          from pathlib import Path
+          from urllib.parse import urljoin
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+
+          OUT = Path('output')
+          ROOT = OUT / 'Rurban_OS_日本相对完整方案库_第07批_4套项目'
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          session = requests.Session()
+          session.headers.update({
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+              'Accept': 'application/pdf,text/html,application/xhtml+xml,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          })
+
+          def soup_for(url: str) -> BeautifulSoup:
+              r = session.get(url, timeout=(30, 150), allow_redirects=True)
+              r.raise_for_status()
+              r.encoding = r.apparent_encoding
+              return BeautifulSoup(r.text, 'html.parser')
+
+          def pdf_links(url: str):
+              soup = soup_for(url)
+              out = []
+              for a in soup.select('a[href]'):
+                  text = ' '.join(a.get_text(' ', strip=True).split())
+                  href = urljoin(url, a.get('href', ''))
+                  if '.pdf' in href.lower():
+                      out.append((text, href))
+              return out
+
+          def find_pdf(url: str, *needles: str, exclude=()):
+              links = pdf_links(url)
+              for text, href in links:
+                  if all(n in text for n in needles) and not any(x in text for x in exclude):
+                      return href
+              raise RuntimeError(f'PDF link not found at {url}: needles={needles}, links={[t for t,_ in links]}')
+
+          entries = []
+          def add(folder, name, url, min_pages=1):
+              entries.append((folder, name, url, min_pages))
+
+          # 01 Osaka Namba: local initiative -> planning -> experiments ->
+          # official implementation -> public response -> operating rules.
+          namba = '01_大阪难波广场_商业核心公共空间及区域运营完整链条'
+          add(namba, '01_地元提言_なんば駅前広場化構想_2013.pdf',
+              'https://www.namba-hiroba.jp/assets/uploads//2025/06/1d4f5b67b84e629fdecd04bf76746748.pdf', 6)
+          add(namba, '02_構想具体化検討資料_2015.pdf',
+              'https://www.namba-hiroba.jp/assets/uploads//2025/06/5496ca815993be58a91cee227d83bf44.pdf', 12)
+          add(namba, '03_なんば駅周辺道路空間再編基本計画_2017.pdf',
+              'https://www.namba-hiroba.jp/assets/uploads//2025/06/edccc2826639a729cac41a5ed7490396.pdf', 15)
+          add(namba, '04_2021社会実験_交通荷捌き安全性検証.pdf',
+              'https://www.namba-hiroba.jp/assets/uploads//2024/09/Social-experiment-overview.pdf', 3)
+          add(namba, '05_2021社会実験_滞在利活用运营検証.pdf',
+              'https://www.namba-hiroba.jp/assets/uploads//2024/09/report2021.pdf', 3)
+          osaka_page = 'https://www.city.osaka.lg.jp/toshikeikaku/page/0000409683.html'
+          osaka_links = pdf_links(osaka_page)
+          parts = [(t,u) for t,u in osaka_links
+                   if 'なんば駅周辺における空間再編推進事業整備プラン＜' in t and '概要版' not in t]
+          if len(parts) != 7:
+              raise RuntimeError(f'Expected 7 Namba plan fragments, got {len(parts)}: {[t for t,_ in parts]}')
+          def start_page(text):
+              if '表紙' in text:
+                  return 0
+              m = re.search(r'＜(\d+)ページ', text)
+              return int(m.group(1)) if m else 999
+          parts.sort(key=lambda x: start_page(x[0]))
+          for i, (text, url) in enumerate(parts, 1):
+              safe = re.sub(r'[<>:"/\\|?*]+', '_', text)
+              add(namba, f'{5+i:02d}_2022整備プラン_{safe}.pdf', url, 1)
+          add(namba, '13_整備プラン_パブリックコメント実施結果.pdf',
+              find_pdf(osaka_page, 'パブリック・コメントの実施結果'), 1)
+          add(namba, '14_整備プラン_市民意見要旨及び大阪市見解.pdf',
+              find_pdf(osaka_page, 'ご意見の要旨と本市の考え方'), 1)
+          add(namba, '15_なんば広場利活用ルール_現行版.pdf',
+              find_pdf('https://www.namba-hiroba.jp/organize/', 'なんば広場利活用ルール'), 3)
+
+          # 02 Matsuyama / Dogo: survey -> prior-cycle final evaluation ->
+          # current fourth plan -> public-comment response.
+          matsu = '02_松山中心市街地及道后_文旅商业活性化计划链条'
+          add(matsu, '01_第4期計画策定アンケート調査報告.pdf',
+              'https://www.city.matsuyama.ehime.jp/shisei/machizukuri/tyuukatu/4ki_chuukatsu.files/4ki_chuukatsu.pdf', 30)
+          add(matsu, '02_第3期計画_最終フォローアップ報告.pdf',
+              'https://www.city.matsuyama.ehime.jp/shisei/machizukuri/tyuukatu/R2_chukatsukeikaku.files/R7.follow.pdf', 15)
+          add(matsu, '03_第4期計画_正式本編.pdf',
+              'https://www.city.matsuyama.ehime.jp/shisei/machizukuri/tyuukatu/4ki_chuukatsu.files/zenpen.pdf', 50)
+          matsu_index = 'https://www.city.matsuyama.ehime.jp/shisei/machizukuri/tyuukatu/shigaichikasseika.html'
+          soup = soup_for(matsu_index)
+          result_page = None
+          for a in soup.select('a[href]'):
+              text = ' '.join(a.get_text(' ', strip=True).split())
+              if '第4期松山市中心市街地活性化基本計画（案）に対する市民意見公募手続の実施結果' in text:
+                  result_page = urljoin(matsu_index, a['href'])
+                  break
+          if not result_page:
+              raise RuntimeError('Matsuyama public-comment result page not found')
+          result_pdfs = pdf_links(result_page)
+          result_pdf = next((u for t,u in result_pdfs if '実施結果' in t or '意見' in t), result_pdfs[0][1] if result_pdfs else None)
+          if not result_pdf:
+              raise RuntimeError('Matsuyama public-comment result PDF not found')
+          add(matsu, '04_第4期計画_市民意見公募結果及び市見解.pdf', result_pdf, 1)
+
+          # 03 Toyama: public response -> current plan -> four annual reviews ->
+          # implementation plan -> formal post-evaluation.
+          toyama = '03_富山中心市街地_商业运营年度评估及实施闭环'
+          toyama_main = 'https://www.city.toyama.lg.jp/shisei/seisaku/1010738/1011477/1014388/1006519.html'
+          toy_links = pdf_links(toyama_main)
+          followups = [(t,u) for t,u in toy_links if 'フォローアップ' in t and '報告' in t]
+          if len(followups) < 4:
+              raise RuntimeError(f'Toyama follow-ups missing: {[t for t,_ in toy_links]}')
+          add(toyama, '01_第4期計画_パブリックコメント意見及び市見解.pdf',
+              find_pdf('https://www.city.toyama.lg.jp/shisei/koho/1010749/1010921/1006574.html',
+                       'パブリックコメントにおけるご意見と市の考え方'), 1)
+          plans = [(t,u) for t,u in toy_links
+                   if '富山市中心市街地活性化基本計画（全編' in t and '概要版' not in t]
+          if not plans:
+              raise RuntimeError(f'Toyama current full plan missing: {[t for t,_ in toy_links]}')
+          add(toyama, '02_第4期富山市中心市街地活性化基本計画_最新変更認定版.pdf', plans[0][1], 60)
+          for i, (text, url) in enumerate(followups[:4], 1):
+              safe = re.sub(r'[<>:"/\\|?*]+', '_', text)
+              add(toyama, f'{i+2:02d}_{safe}.pdf', url, 5)
+          toy_eval = 'https://www.city.toyama.lg.jp/shisei/machizukuri/1015125/1015131/1010795/1018651.html'
+          add(toyama, '07_都市再生整備計画_中心市街地地区第4期.pdf',
+              find_pdf(toy_eval, '都市再生整備計画'), 3)
+          add(toyama, '08_都市再生整備計画_第4期事後評価シート.pdf',
+              find_pdf(toy_eval, '事後評価シート'), 5)
+
+          # 04 Kashiwa wholesale market: operational evidence/strategy ->
+          # sounding/governance -> public response -> final plan -> current
+          # implementation partner requirements, infrastructure and agreement.
+          kashiwa = '04_柏市公设综合批发市场_专业市场复合再开发及运营链条'
+          add(kashiwa, '01_令和6年度市場年報_全データ.pdf',
+              find_pdf('https://www.city.kashiwa.lg.jp/kosetsuichiba/nenpo-r6.html', '全データ'), 20)
+          add(kashiwa, '02_柏市公設総合地方卸売市場経営戦略_2021-2030.pdf',
+              'https://www.city.kashiwa.lg.jp/documents/23967/keieisenryaku.pdf', 20)
+          add(kashiwa, '03_再整備及び用地活用_サウンディング調査実施要領.pdf',
+              find_pdf('https://www.city.kashiwa.lg.jp/kosetsuichiba/jigyosha/promotion/kosetsu/ichiba/marketsounding.html',
+                       'サウンディング調査実施要領'), 5)
+          council = 'https://www.city.kashiwa.lg.jp/kosetsuichiba/shingikai_kiroku_r7_3.html'
+          add(kashiwa, '04_市場運営審議会_基本計画答申会議資料.pdf', find_pdf(council, '会議資料'), 5)
+          add(kashiwa, '05_市場運営審議会_基本計画答申.pdf', find_pdf(council, '答申'), 1)
+          add(kashiwa, '06_基本計画_パブリックコメント実施結果.pdf',
+              find_pdf('https://www.city.kashiwa.lg.jp/kosetsuichiba/saiseibi_public_r7.html',
+                       'パブリックコメントの実施結果'), 1)
+          add(kashiwa, '07_市場再整備及び市場用地活用基本計画_最終版.pdf',
+              'https://www.city.kashiwa.lg.jp/documents/45369/ichiba_kihonkeikaku.pdf', 70)
+          impl = 'https://www.city.kashiwa.lg.jp/kosetsuichiba/saiseibi_jigyoukyouryoku_koubo.html'
+          add(kashiwa, '08_事業協力者募集要領_2026年8月更新.pdf', find_pdf(impl, '募集要領'), 8)
+          add(kashiwa, '09_詳細施設配置図及び各種インフラ現況図.pdf',
+              find_pdf(impl, '詳細施設配置図及び各種インフラ現況図'), 3)
+          add(kashiwa, '10_事業協力者との事業推進協定書案.pdf',
+              find_pdf(impl, '事業協力者との事業推進に係る協定書'), 1)
+          add(kashiwa, '11_事業協力者選定基準.pdf', find_pdf(impl, '事業協力者選定基準'), 2)
+
+          seen = {}
+          total_pages = 0
+          total_bytes = 0
+          stats = {}
+
+          for idx, (folder, name, url, minimum) in enumerate(entries, 1):
+              d = ROOT / folder
+              d.mkdir(parents=True, exist_ok=True)
+              target = d / name
+              tmp = target.with_suffix('.part')
+              last = None
+              print(f'[{idx}/{len(entries)}] {folder}/{name}\n  {url}', flush=True)
+              for attempt in range(1, 5):
+                  try:
+                      with session.get(url, stream=True, timeout=(30, 360), allow_redirects=True) as r:
+                          r.raise_for_status()
+                          with open(tmp, 'wb') as fh:
+                              for chunk in r.iter_content(1024 * 1024):
+                                  if chunk:
+                                      fh.write(chunk)
+                      size = tmp.stat().st_size
+                      if size < 20_000:
+                          raise RuntimeError(f'file too small: {size}')
+                      with open(tmp, 'rb') as fh:
+                          if not fh.read(8).startswith(b'%PDF'):
+                              raise RuntimeError('not PDF')
+                      reader = PdfReader(str(tmp), strict=False)
+                      pages = len(reader.pages)
+                      if pages < minimum:
+                          raise RuntimeError(f'pages {pages} below expected minimum {minimum}')
+                      for p in sorted({0, pages // 2, pages - 1}):
+                          _ = reader.pages[p].mediabox
+                      doc = pymupdf.open(str(tmp))
+                      for p in sorted({0, pages // 2, pages - 1}):
+                          pix = doc.load_page(p).get_pixmap(matrix=pymupdf.Matrix(0.45, 0.45), alpha=False)
+                          if pix.width < 50 or pix.height < 50 or len(pix.samples) < 5000:
+                              raise RuntimeError(f'render validation failed page {p+1}')
+                      doc.close()
+                      digest = hashlib.sha256(tmp.read_bytes()).hexdigest()
+                      if digest in seen:
+                          raise RuntimeError(f'duplicate PDF with {seen[digest]}')
+                      seen[digest] = f'{folder}/{name}'
+                      tmp.replace(target)
+                      total_pages += pages
+                      total_bytes += size
+                      st = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+                      st['pdfs'] += 1; st['pages'] += pages; st['bytes'] += size
+                      print(f'  accepted {pages} pages {size/1048576:.1f} MB', flush=True)
+                      last = None
+                      break
+                  except Exception as exc:
+                      last = f'{type(exc).__name__}: {exc}'
+                      if tmp.exists(): tmp.unlink()
+                      if attempt < 4: time.sleep(4 * attempt)
+              if last:
+                  raise SystemExit(f'FAILED {folder}/{name}: {last}')
+
+          pdfs = sorted(ROOT.rglob('*.pdf'))
+          if len(pdfs) != len(entries):
+              raise SystemExit(f'PDF count mismatch {len(pdfs)} != {len(entries)}')
+          final_zip = OUT / 'Rurban_OS_Japan_Batch07_4_Relatively_Complete_Project_Sets.zip'
+          with zipfile.ZipFile(final_zip, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for p in pdfs:
+                  zf.write(p, p.relative_to(ROOT.parent))
+          with zipfile.ZipFile(final_zip) as zf:
+              if zf.testzip(): raise SystemExit('ZIP corruption')
+              file_entries = [n for n in zf.namelist() if not n.endswith('/')]
+              if len(file_entries) != len(entries) or any(not n.lower().endswith('.pdf') for n in file_entries):
+                  raise SystemExit(f'ZIP contents invalid: {len(file_entries)} files')
+          for folder, st in stats.items():
+              print(f"{folder}: {st['pdfs']} PDFs, {st['pages']} pages, {st['bytes']/1048576:.1f} MB", flush=True)
+          print({'sets': len(stats), 'pdfs': len(entries), 'pages': total_pages,
+                 'source_mb': round(total_bytes/1048576, 1),
+                 'zip_mb': round(final_zip.stat().st_size/1048576, 1)}, flush=True)
+          if final_zip.stat().st_size > 145 * 1048576:
+              raise SystemExit(f'ZIP exceeds 145MB target: {final_zip.stat().st_size}')
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch7-complete-sets-v2
+          path: output/Rurban_OS_Japan_Batch07_4_Relatively_Complete_Project_Sets.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
