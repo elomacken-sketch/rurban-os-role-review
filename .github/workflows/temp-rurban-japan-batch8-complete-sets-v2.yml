@@ -38,11 +38,20 @@ jobs:
               raise SystemExit('Expected HTML decoding line not found')
           script = script.replace(old_decode, new_decode, 1)
 
-          old_comment = "lambda: find_pdf(OKAZAKI_COMMENT, ('提出された意見の概要', '岡崎市の考え方'))"
-          new_comment = "'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/006/275/file03.pdf'"
-          if old_comment not in script:
-              raise SystemExit('Expected QURUWA comment resolver not found')
-          script = script.replace(old_comment, new_comment, 1)
+          replacements = [
+              (
+                  "lambda: find_pdf(OKAZAKI_COMMENT, ('提出された意見の概要', '岡崎市の考え方'))",
+                  "'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/006/275/file03.pdf'",
+              ),
+              (
+                  "lambda: find_pdf(OKAZAKI_TREASURE, ('平成28年度', 'トレジャーハンティング報告')), 5)",
+                  "lambda: find_pdf(OKAZAKI_TREASURE, ('平成28年度', 'トレジャーハンティング報告')), 2)",
+              ),
+          ]
+          for old, new in replacements:
+              if old not in script:
+                  raise SystemExit(f'Expected batch8 patch target not found: {old}')
+              script = script.replace(old, new, 1)
 
           exec(compile(script, '<batch8-v2>', 'exec'), {'__name__': '__main__'})
       - name: Upload verified PDF-only package
