@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Prepare
         run: python -m pip install --quiet requests beautifulsoup4
-      - name: Inspect official homepage links and serialized URLs
+      - name: Inspect official Studio site routes and assets
         shell: python
         run: |
           import html
@@ -24,24 +24,52 @@ jobs:
           import requests
           from bs4 import BeautifulSoup
 
-          url = 'https://shinosaka-south.com/'
-          r = requests.get(url, headers={'User-Agent':'Mozilla/5.0'}, timeout=60)
-          print('STATUS', r.status_code, r.url, r.headers.get('content-type'), len(r.content))
+          headers = {'User-Agent':'Mozilla/5.0'}
+          home = 'https://shinosaka-south.com/'
+          r = requests.get(home, headers=headers, timeout=60)
+          print('HOME', r.status_code, r.url, r.headers.get('content-type'), len(r.content))
           r.raise_for_status()
           text = r.content.decode('utf-8', errors='replace')
           soup = BeautifulSoup(text, 'html.parser')
-          print('--- LINKS ---')
-          for a in soup.find_all('a', href=True):
-              label = ' '.join(a.stripped_strings)
-              href = urljoin(r.url, a.get('href', ''))
-              print(repr(label), '=>', href)
-          raw = html.unescape(text).replace('\\/', '/').replace('\\u002F','/')
-          print('--- URL CANDIDATES ---')
-          urls = sorted(set(re.findall(r'https?://[^\s"\'<>]+', raw)))
-          for u in urls:
-              if any(k in u.lower() for k in ('pdf','vision','drive','storage.googleapis')):
-                  print(u[:500])
-          print('--- LINES CONTAINING VISION/PDF ---')
-          for line in text.splitlines():
-              if 'vision' in line.lower() or '.pdf' in line.lower() or 'ビジョン' in line:
-                  print(line[:2000])
+
+          sources = []
+          for tag in soup.find_all(['script', 'link']):
+              value = tag.get('src') or tag.get('href')
+              if value and ('_nuxt/' in value or 'studio-publish' in value):
+                  sources.append(urljoin(r.url, value))
+          print('SOURCES', sources)
+
+          needles = ('vision', 'ビジョン', '.pdf', 'studio-publish', 'route', 'pages', 'pageid', 'slug')
+          for source in sources:
+              rr = requests.get(source, headers=headers, timeout=60)
+              print('\nSOURCE', rr.status_code, source, rr.headers.get('content-type'), len(rr.content))
+              body = rr.content.decode('utf-8', errors='replace')
+              low = body.lower()
+              for needle in needles:
+                  start = 0
+                  count = 0
+                  while count < 20:
+                      pos = low.find(needle.lower(), start)
+                      if pos < 0:
+                          break
+                      print('MATCH', needle, repr(body[max(0,pos-250):pos+750]))
+                      start = pos + len(needle)
+                      count += 1
+              urls = sorted(set(re.findall(r'https?://[^\s"\'<>`]+', html.unescape(body).replace('\\/','/'))))
+              for u in urls:
+                  if any(k in u.lower() for k in ('studio', 'pdf', 'storage.googleapis', 'shinosaka')):
+                      print('URL', u[:1000])
+
+          probes = [
+              'https://storage.googleapis.com/studio-publish/projects/G3qbbwRNqJ/Ra4Ap8KVWD/',
+              'https://storage.googleapis.com/studio-publish-index/projects/G3qbbwRNqJ/Ra4Ap8KVWD/',
+              'https://api.studiodesignapp.com/api/projects/G3qbbwRNqJ',
+              'https://api.studiodesignapp.com/api/projects/G3qbbwRNqJ/pages',
+          ]
+          for probe in probes:
+              try:
+                  rr = requests.get(probe, headers=headers, timeout=60)
+                  print('\nPROBE', rr.status_code, probe, rr.url, rr.headers.get('content-type'), len(rr.content))
+                  print(rr.content[:5000].decode('utf-8', errors='replace'))
+              except Exception as exc:
+                  print('PROBE FAILED', probe, repr(exc))
