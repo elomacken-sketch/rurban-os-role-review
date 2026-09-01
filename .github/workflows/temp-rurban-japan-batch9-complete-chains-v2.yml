@@ -36,6 +36,10 @@ jobs:
                   "lambda: find_pdf(OMIYA_VISION, ('6.', '検討の経緯', '2'))",
                   "'https://www.city.saitama.lg.jp/001/010/015/004/001/003/p011083_d/fil/honpen6-2.pdf'",
               ),
+              (
+                  "lambda: find_pdf(find_page(KURE_INDEX, ('交通ターミナル整備事業計画をとりまとめました',)), ('交通ターミナル整備事業計画',))",
+                  "'https://www.cgr.mlit.go.jp/hirokoku/kurebasuta/pdf/jigyoukeikaku.pdf'",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
