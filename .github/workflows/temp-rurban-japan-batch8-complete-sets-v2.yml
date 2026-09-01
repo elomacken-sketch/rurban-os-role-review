@@ -51,6 +51,10 @@ jobs:
                   "lambda: first_valid_pdf_from_page('https://shinosaka-south.com/vision')",
                   "'https://storage.googleapis.com/studio-design-asset-files/projects/G3qbbwRNqJ/s-1x1_a861d7f9-2861-4070-a0dc-0953e6651af6.pdf'",
               ),
+              (
+                  "lambda: find_pdf(IKE_PARKING_MGMT, ('駐車', 'まちづくりマネジメントガイドライン')), 10)",
+                  "'https://www.city.toshima.lg.jp/documents/44273/chikumanegaidorain_honpen.pdf', 50)",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
