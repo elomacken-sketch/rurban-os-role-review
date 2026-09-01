@@ -1,0 +1,164 @@
+name: Temporary Rurban Japan Batch6 Complete Sets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch6-complete-sets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests pypdf beautifulsoup4
+
+      - name: Download, verify, and package
+        shell: python
+        run: |
+          import os
+          import time
+          import zipfile
+          from pathlib import Path
+          from urllib.parse import urljoin
+
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+
+          ROOT = Path('output/Rurban_OS_日本相对完整方案库_第06批_4套项目')
+          ROOT.mkdir(parents=True, exist_ok=True)
+          session = requests.Session()
+          session.headers.update({
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+              'Accept': 'application/pdf,text/html,application/xhtml+xml,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          })
+
+          def discover_pdf(page_url: str, text_fragment: str) -> str:
+              r = session.get(page_url, timeout=(30, 120))
+              r.raise_for_status()
+              r.encoding = r.apparent_encoding
+              soup = BeautifulSoup(r.text, 'html.parser')
+              for a in soup.select('a[href]'):
+                  text = ' '.join(a.get_text(' ', strip=True).split())
+                  href = a.get('href', '')
+                  if text_fragment in text and '.pdf' in href.lower():
+                      return urljoin(page_url, href)
+              raise RuntimeError(f'could not discover PDF containing text: {text_fragment}')
+
+          makomanai_pc = discover_pdf(
+              'https://www.city.sapporo.jp/keikaku/kougai/makomanai/keikakupabukome.html',
+              'ご意見の概要と札幌市の考え方'
+          )
+
+          files = [
+              # 01 Sapporo downtown: evidence -> final plan -> public comment -> first action program
+              ('01_札幌都心_第3次都心まちづくり完整体系', '01_第3次都心まちづくり計画_本书_2026.pdf', 'https://www.city.sapporo.jp/kikaku/downtown/plan/documents/3honsyo.pdf', 150),
+              ('01_札幌都心_第3次都心まちづくり完整体系', '02_市民及来街者意向调查报告.pdf', 'https://www.city.sapporo.jp/kikaku/downtown/plan/documents/2-siryou4.pdf', 50),
+              ('01_札幌都心_第3次都心まちづくり完整体系', '03_公开征求意见结果及政府回应.pdf', 'https://www.city.sapporo.jp/kikaku/downtown/plan/documents/3jitoshinmaci_pc_gaiyou.pdf', 8),
+              ('01_札幌都心_第3次都心まちづくり完整体系', '04_第1期中期ActionProgram案_2026.pdf', 'https://www.city.sapporo.jp/kikaku/downtown/plan/documents/1kai_ap.pdf', 20),
+
+              # 02 Makomanai station front: all official chapters + evidence + public comment
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '01_封面目录及第1章_目的与定位.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_hyousi~mokuzi~1shou.pdf', 8),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '02_第2章_区域现状与问题.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_2shou.pdf', 20),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '03_第3章_城市营造方向.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_3shou.pdf', 7),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '04_第4章_土地利用计划.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_4shou.pdf', 18),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '05_第5章_支撑城市营造的行动.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_5shou.pdf', 5),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '06_第6章_智慧社区形成.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_6shou.pdf', 3),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '07_第7章_后续推进流程.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_7shou.pdf', 2),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '08_资料篇_调研论证及协商过程.pdf', 'https://www.city.sapporo.jp/keikaku/kougai/makomanai/documents/makomanai_keikaku_shiryouhen.pdf', 40),
+              ('02_真驹内站前_文旅门户及复合设施土地利用再编', '09_公开征求意见结果及政府回应.pdf', makomanai_pc, 8),
+
+              # 03 Takadanobaba: diagnostic -> adopted policy -> public response -> implementation tracking
+              ('03_高田马场站区_商业站城更新完整链条', '01_区域现状及问题诊断.pdf', 'https://www.city.shinjuku.lg.jp/content/000360570.pdf', 30),
+              ('03_高田马场站区_商业站城更新完整链条', '02_高田马场站周边区域城市营造方针_2022.pdf', 'https://www.city.shinjuku.lg.jp/content/000345803.pdf', 43),
+              ('03_高田马场站区_商业站城更新完整链条', '03_公众意见募集及说明会结果.pdf', 'https://www.city.shinjuku.lg.jp/content/000360586.pdf', 1),
+              ('03_高田马场站区_商业站城更新完整链条', '04_方针制定后的推进安排.pdf', 'https://www.city.shinjuku.lg.jp/content/000360590.pdf', 1),
+              ('03_高田马场站区_商业站城更新完整链条', '05_第4回推进检讨委员会_实施深化资料_2026.pdf', 'https://www.city.shinjuku.lg.jp/content/000450106.pdf', 12),
+
+              # 04 Shinjuku Grand Terminal: adopted policy -> public response -> detailed design policy
+              ('04_新宿GrandTerminal_大型商业枢纽一体化再编', '01_新宿据点再整备方针_GrandTerminal一体化再编_2018.pdf', 'https://www.city.shinjuku.lg.jp/content/000363459.pdf', 20),
+              ('04_新宿GrandTerminal_大型商业枢纽一体化再编', '02_公开征求意见结果及政府回应.pdf', 'https://www.city.shinjuku.lg.jp/content/000363461.pdf', 5),
+              ('04_新宿GrandTerminal_大型商业枢纽一体化再编', '03_新宿GrandTerminal设计政策_2026.pdf', 'https://www.city.shinjuku.lg.jp/content/000452454.pdf', 27),
+          ]
+
+          total_pages = 0
+          total_bytes = 0
+          for idx, (folder, name, url, minimum) in enumerate(files, 1):
+              target_dir = ROOT / folder
+              target_dir.mkdir(parents=True, exist_ok=True)
+              target = target_dir / name
+              tmp = target.with_suffix('.part')
+              print(f'[{idx}/{len(files)}] {name}\n  {url}', flush=True)
+              last_error = None
+              for attempt in range(1, 5):
+                  try:
+                      with session.get(url, stream=True, timeout=(30, 300), allow_redirects=True) as r:
+                          r.raise_for_status()
+                          with open(tmp, 'wb') as fh:
+                              for chunk in r.iter_content(1024 * 1024):
+                                  if chunk:
+                                      fh.write(chunk)
+                      if tmp.stat().st_size < 20_000:
+                          raise RuntimeError(f'file too small: {tmp.stat().st_size}')
+                      with open(tmp, 'rb') as fh:
+                          if not fh.read(8).startswith(b'%PDF'):
+                              raise RuntimeError('not a PDF header')
+                      reader = PdfReader(str(tmp), strict=False)
+                      pages = len(reader.pages)
+                      if pages < minimum:
+                          raise RuntimeError(f'pages {pages} below expected minimum {minimum}')
+                      for pageno in sorted({0, pages // 2, pages - 1}):
+                          _ = reader.pages[pageno].mediabox
+                      tmp.replace(target)
+                      total_pages += pages
+                      total_bytes += target.stat().st_size
+                      print(f'  accepted: {pages} pages, {target.stat().st_size/1024/1024:.1f} MB', flush=True)
+                      last_error = None
+                      break
+                  except Exception as exc:
+                      last_error = f'{type(exc).__name__}: {exc}'
+                      if tmp.exists():
+                          tmp.unlink()
+                      if attempt < 4:
+                          time.sleep(4 * attempt)
+              if last_error:
+                  raise SystemExit(f'FAILED {name}: {last_error}')
+
+          final_zip = Path('output/Rurban_OS_Japan_Batch06_4_Relatively_Complete_Project_Sets.zip')
+          with zipfile.ZipFile(final_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, arcname=pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(final_zip, 'r') as zf:
+              bad = zf.testzip()
+              if bad:
+                  raise SystemExit(f'corrupt archive entry: {bad}')
+              pdf_entries = [n for n in zf.namelist() if n.lower().endswith('.pdf')]
+              if len(pdf_entries) != len(files):
+                  raise SystemExit(f'PDF count mismatch: {len(pdf_entries)} != {len(files)}')
+
+          print({
+              'project_sets': 4,
+              'pdf_count': len(files),
+              'total_pages': total_pages,
+              'source_mb': round(total_bytes / 1024 / 1024, 1),
+              'zip_mb': round(final_zip.stat().st_size / 1024 / 1024, 1),
+          }, flush=True)
+
+          if final_zip.stat().st_size > 145 * 1024 * 1024:
+              raise SystemExit(f'Final zip exceeds 145MB download target: {final_zip.stat().st_size}')
+
+      - name: Upload verified actual-content package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch6-complete-sets
+          path: output/Rurban_OS_Japan_Batch06_4_Relatively_Complete_Project_Sets.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
