@@ -1,0 +1,41 @@
+name: Temporary Publish Batch9 PDF Samples
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch9-samples.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  samples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: rurban-japan-batch9-temp-20260901
+      ZIP_NAME: Rurban_OS_Japan_Batch09_4_Complete_Project_Chains.zip
+    steps:
+      - name: Download package and select representative PDFs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p work/unzip samples
+          gh release download "$RELEASE_TAG" -p "$ZIP_NAME" -D work
+          unzip -q "work/$ZIP_NAME" -d work/unzip
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          root=Path('work/unzip')
+          folders=sorted([p for p in root.rglob('*') if p.is_dir() and any(p.glob('*.pdf'))])
+          assert len(folders)==4, folders
+          names=['01_himeji_sample.pdf','02_matsuyama_sample.pdf','03_fukui_sample.pdf','04_utsunomiya_sample.pdf']
+          for folder,name in zip(folders,names):
+              pdfs=sorted(folder.glob('*.pdf'))
+              # Choose the largest document as the representative visual check.
+              chosen=max(pdfs,key=lambda p:p.stat().st_size)
+              shutil.copy2(chosen,Path('samples')/name)
+              print(name,'<=',chosen)
+          PY
+          gh release upload "$RELEASE_TAG" samples/*.pdf --clobber
