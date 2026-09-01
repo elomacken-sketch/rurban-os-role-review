@@ -1,0 +1,403 @@
+name: Temporary Rurban Japan Batch8 Complete Project Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch8-complete-sets.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+      - name: Download, validate, render-check and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin, urlparse, parse_qs
+          import hashlib
+          import html as htmlmod
+          import re
+          import shutil
+          import time
+          import zipfile
+
+          import fitz
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          ROOT = Path('output/Rurban_OS_Japan_Batch08_4_Complete_Project_Chains')
+          TMP = Path('output/.batch08_tmp')
+          ZIP_PATH = Path('output/Rurban_OS_Japan_Batch08_4_Complete_Project_Chains.zip')
+          shutil.rmtree(ROOT, ignore_errors=True)
+          shutil.rmtree(TMP, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+          TMP.mkdir(parents=True, exist_ok=True)
+
+          session = requests.Session()
+          retry = Retry(
+              total=5,
+              connect=5,
+              read=5,
+              backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+                            'AppleWebKit/537.36 (KHTML, like Gecko) '
+                            'Chrome/152.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              return re.sub(r'\s+', '', htmlmod.unescape(value or '')).lower()
+
+          def get(url: str, *, timeout: int = 45) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      r = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      r.raise_for_status()
+                      return r
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}')
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          _page_cache: dict[str, tuple[str, list[tuple[str, str]]]] = {}
+
+          def page_links(page_url: str) -> tuple[str, list[tuple[str, str]]]:
+              if page_url in _page_cache:
+                  return _page_cache[page_url]
+              r = get(page_url)
+              text = r.text
+              soup = BeautifulSoup(text, 'html.parser')
+              found: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for a in soup.find_all('a', href=True):
+                  href = urljoin(r.url, a.get('href', '').strip())
+                  label = ' '.join(a.stripped_strings)
+                  href = href.replace('/page/cmsfiles/', '/cmsfiles/')
+                  if href and href not in seen:
+                      seen.add(href)
+                      found.append((label, href))
+
+              # STUDIO and other JS-generated pages often serialize links in JSON.
+              raw = htmlmod.unescape(text).replace('\\/', '/').replace('\\u002F', '/')
+              regexes = [
+                  r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?',
+                  r'https?://drive\.google\.com/file/d/[A-Za-z0-9_-]+/view[^\s"\'<>]*',
+                  r'https?://storage\.googleapis\.com/[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?',
+              ]
+              for pattern in regexes:
+                  for href in re.findall(pattern, raw, flags=re.I):
+                      href = href.rstrip('\\,;)]}')
+                      if href not in seen:
+                          seen.add(href)
+                          found.append(('', href))
+              _page_cache[page_url] = (text, found)
+              print(f'DISCOVER {page_url}: {len(found)} links')
+              return _page_cache[page_url]
+
+          def to_download_url(url: str) -> str:
+              if 'drive.google.com/file/d/' in url:
+                  file_id = url.split('/file/d/', 1)[1].split('/', 1)[0]
+                  return f'https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t'
+              if 'drive.google.com/open' in url or 'drive.google.com/uc' in url:
+                  qs = parse_qs(urlparse(url).query)
+                  file_id = (qs.get('id') or [''])[0]
+                  if file_id:
+                      return f'https://drive.usercontent.google.com/download?id={file_id}&export=download&confirm=t'
+              return url
+
+          def find_pdf(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = ()) -> str:
+              _, links = page_links(page_url)
+              inc = tuple(norm(x) for x in include)
+              exc = tuple(norm(x) for x in exclude)
+              ranked: list[tuple[int, str, str]] = []
+              for label, href in links:
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in inc):
+                      continue
+                  if any(x in blob for x in exc):
+                      continue
+                  score = 0
+                  low = href.lower()
+                  if '.pdf' in low:
+                      score += 100
+                  if 'drive.google.com' in low or 'storage.googleapis.com' in low:
+                      score += 90
+                  score += sum(20 for x in inc if x in norm(label))
+                  score -= len(href) // 100
+                  ranked.append((score, label, href))
+              if not ranked:
+                  available = '\n'.join(f'    {label[:90]} -> {href}' for label, href in links[:120])
+                  raise RuntimeError(
+                      f'No PDF link matched {include!r} excluding {exclude!r} on {page_url}.\n{available}'
+                  )
+              ranked.sort(reverse=True)
+              chosen = ranked[0]
+              print(f'RESOLVE {include}: {chosen[1]} -> {chosen[2]}')
+              return to_download_url(chosen[2])
+
+          def first_valid_pdf_from_page(page_url: str) -> str:
+              _, links = page_links(page_url)
+              candidates: list[str] = []
+              for label, href in links:
+                  low = href.lower()
+                  if '.pdf' in low or 'drive.google.com' in low or 'storage.googleapis.com' in low:
+                      candidates.append(to_download_url(href))
+              if not candidates:
+                  raise RuntimeError(f'No PDF-like URL discovered on {page_url}')
+              # Prefer PDFs closest to vision wording, then storage/drive, then the remaining URLs.
+              def rank(u: str) -> tuple[int, int]:
+                  s = norm(u)
+                  score = 0
+                  if 'vision' in s or 'ビジョン' in s:
+                      score += 50
+                  if 'storage.googleapis.com' in s or 'drive.usercontent.google.com' in s:
+                      score += 20
+                  return (score, -len(u))
+              candidates = sorted(dict.fromkeys(candidates), key=rank, reverse=True)
+              for u in candidates:
+                  try:
+                      r = get(u, timeout=60)
+                      if r.content[:5] == b'%PDF-':
+                          print(f'RESOLVE first valid PDF: {u}')
+                          return u
+                      print(f'  rejected non-PDF candidate {u}: {r.headers.get("content-type")} {len(r.content)} bytes')
+                  except Exception as exc:
+                      print(f'  rejected failed candidate {u}: {exc}')
+              raise RuntimeError(f'No valid PDF response among {len(candidates)} candidates on {page_url}')
+
+          OKAZAKI_PHASE1 = 'https://www.city.okazaki.lg.jp/shisei/machi/1005061/1002967/1008078.html'
+          OKAZAKI_COMMENT = 'https://www.city.okazaki.lg.jp/shisei/koho/1006242/1006246/1006251/1012316/1006275.html'
+          OKAZAKI_STATION = 'https://www.city.okazaki.lg.jp/shisei/vision/1008051/1008104/1010990.html'
+          OKAZAKI_TREASURE = 'https://www.city.okazaki.lg.jp/shisei/machi/1005061/1002967/1013179/1014376/1011651.html'
+
+          OSAKA_MAIN = 'https://www.pref.osaka.lg.jp/o140030/daitoshimachi/shin-osaka/index.html'
+          OSAKA_2025 = 'https://www.pref.osaka.lg.jp/o140030/daitoshimachi/shin-osaka/houshin202506.html'
+          OSAKA_SYMP = 'https://www.pref.osaka.lg.jp/o140030/daitoshimachi/shin-osaka/shin_osaka_r6sympo.html'
+
+          TAKAMATSU_3 = 'https://www.city.takamatsu.kagawa.jp/kurashi/shinotorikumi/machidukuri/kasseika/chushin/3rd.html'
+          TAKAMATSU_4 = 'https://www.city.takamatsu.kagawa.jp/kurashi/shinotorikumi/machidukuri/kasseika/chushin/4th.html'
+          TAKAMATSU_COMMENT = 'https://www.city.takamatsu.kagawa.jp/kurashi/shinotorikumi/machidukuri/kasseika/chushin/4thpubcommekekka.html'
+          TAKAMATSU_DATA = 'https://www.city.takamatsu.kagawa.jp/kurashi/shinotorikumi/machidukuri/kasseika/chushin/shogyo.html'
+
+          IKE_GUIDE = 'https://www.city.toshima.lg.jp/405/machizukuri/toshikekaku/1609051556.html'
+          IKE_INFRA = 'https://www.city.toshima.lg.jp/405/1705251437.html'
+          IKE_CORE = 'https://www.city.toshima.lg.jp/405/2003021301.html'
+          IKE_TRAFFIC = 'https://www.city.toshima.lg.jp/550/kuse/shisaku/shisaku/kekaku/001367/024565.html'
+          IKE_SIGN = 'https://www.city.toshima.lg.jp/405/1705251510.html'
+          IKE_PARKING_MGMT = 'https://www.city.toshima.lg.jp/551/2304271626.html'
+          IKE_PARKING_PLAN = 'https://www.city.toshima.lg.jp/551/2111161124.html'
+
+          # Each entry: folder, filename, resolver/direct URL, minimum pages.
+          entries: list[tuple[str, str, object, int]] = [
+              # 01 Okazaki QURUWA: participatory discovery -> strategy -> phased implementation -> evaluation.
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '01_QURUWA战略_2024改订正式版.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/002/968/quruwasennryaku.pdf', 10),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '02_QURUWA战略_公众意见及市政府回应_2024.pdf',
+               lambda: find_pdf(OKAZAKI_COMMENT, ('提出された意見の概要', '岡崎市の考え方')), 1),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '03_街区资源发现_Treasure_Hunting完整报告.pdf',
+               lambda: find_pdf(OKAZAKI_TREASURE, ('平成28年度', 'トレジャーハンティング報告')), 5),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '04_第1期都市再生整备计划_2015-2020.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/008/078/rf-tosisaisei-7.pdf', 5),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '05_第1期事后评价表.pdf',
+               lambda: find_pdf(OKAZAKI_PHASE1, ('事後評価シート',)), 1),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '06_第1期最终问卷调查_2020.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/008/078/2020anketekekka.pdf', 3),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '07_第2期都市再生整备计划_2021-2025.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/002/979/rfkeikaku.pdf', 5),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '08_第2期事后评价表.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/002/979/zigohyouka2026.pdf', 5),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '09_第3期都市再生整备计划_2026-2030.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/016/148/seibikeikaku3ki.pdf', 5),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '10_东冈崎站据点愿景.pdf',
+               lambda: find_pdf(OKAZAKI_STATION, ('東岡崎駅拠点ビジョン', '説明資料')), 2),
+              ('01_冈崎QURUWA_公民协作街区更新完整闭环', '11_早期战略论坛_私たちのQURUWA戦略.pdf',
+               'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/011/650/forumhaifusiryou.pdf', 3),
+
+              # 02 Shin-Osaka: 2022 baseline -> 2025 official update -> landowner vision -> social experiment.
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '01_官方区域总方针_2022全体版.pdf',
+               lambda: find_pdf(OSAKA_MAIN, ('全体版', 'PDF'), ('ワード',)), 20),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '02_官方总方针_2025全体构想.pdf',
+               lambda: find_pdf(OSAKA_2025, ('全体構想',)), 10),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '03_官方总方针_2025新大阪站区域计划.pdf',
+               lambda: find_pdf(OSAKA_2025, ('新大阪駅エリア計画',)), 10),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '04_官方总方针_2025十三站区域计划.pdf',
+               lambda: find_pdf(OSAKA_2025, ('十三駅エリア計画',)), 5),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '05_官方总方针_2025淡路站区域计划.pdf',
+               lambda: find_pdf(OSAKA_2025, ('淡路駅エリア計画',)), 5),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '06_官方总方针_2025资料篇.pdf',
+               lambda: find_pdf(OSAKA_2025, ('資料編',)), 3),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '07_官方总方针_公众意见及政府回应_2025.pdf',
+               lambda: find_pdf(OSAKA_2025, ('ご意見', '大阪府', '大阪市', '考え方')), 1),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '08_都市再生紧急整备地域_地域整备方针.pdf',
+               lambda: find_pdf(OSAKA_MAIN, ('地域整備方針', 'PDF')), 1),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '09_南口区域地权人协作_街区营造愿景Vol1_2026.pdf',
+               lambda: first_valid_pdf_from_page('https://shinosaka-south.com/vision'), 5),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '10_南口Green_Walkable_Trial_2025活动说明.pdf',
+               'https://drive.usercontent.google.com/download?id=1QerbxxY7N7NY4-D71Jx_z98Emjdizusa&export=download&confirm=t', 1),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '11_南口Green_Walkable_Trial_2025实施结果.pdf',
+               'https://storage.googleapis.com/studio-design-asset-files/projects/G3qbbwRNqJ/s-1x1_2b63453b-24a2-4aa8-8e13-0ca758555b99.pdf', 1),
+              ('02_新大阪站周边_官方总方针与南口社会实验链条', '12_新大阪站周边街区营造Symposium_2025实施结果.pdf',
+               lambda: find_pdf(OSAKA_SYMP, ('開催結果',)), 1),
+
+              # 03 Takamatsu: prior plan result -> new plan -> current follow-up -> operating data.
+              ('03_高松中心市街地_商业计划与经营数据闭环', '01_第3期中心市街地活性化基本计划_全编.pdf',
+               lambda: find_pdf(TAKAMATSU_3, ('第3期高松市中心市街地活性化基本計画', '全編')), 100),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '02_第3期最终Follow_Up报告_2025.pdf',
+               lambda: find_pdf(TAKAMATSU_3, ('最終フォローアップ報告',)), 3),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '03_第4期中心市街地活性化基本计划_最新认定全编.pdf',
+               lambda: find_pdf(TAKAMATSU_4, ('第4期高松市中心市街地活性化基本計画', '全編')), 80),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '04_第4期首次定期Follow_Up报告_2026.pdf',
+               lambda: find_pdf(TAKAMATSU_4, ('定期フォローアップ報告',)), 3),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '05_第4期公众意见及市政府回应.pdf',
+               lambda: find_pdf(TAKAMATSU_COMMENT, ('寄せられた御意見', '市の考え方')), 1),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '06_中央商店街年度通行量_摄像头调查_R7.4-R8.3.pdf',
+               lambda: find_pdf(TAKAMATSU_DATA, ('R7.4月からR8.3月まで', '通行量調査結果')), 5),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '07_店铺立地动态调查_R8.6.pdf',
+               lambda: find_pdf(TAKAMATSU_DATA, ('R8.6月', '店舗立地動向調査結果')), 1),
+              ('03_高松中心市街地_商业计划与经营数据闭环', '08_全市与中心市街地人口数据_R7.10.pdf',
+               lambda: find_pdf(TAKAMATSU_DATA, ('R7.10月', '中心市街地の人口')), 1),
+
+              # 04 Ikebukuro: shared vision -> infrastructure -> core-zone -> mobility -> signage -> parking operations.
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '01_池袋站周边街区营造Guideline_2016全编.pdf',
+               lambda: find_pdf(IKE_GUIDE, ('全編', '池袋駅周辺地域まちづくりガイドライン')), 20),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '02_池袋站周边地域基础设施整备方针_2018全编.pdf',
+               lambda: find_pdf(IKE_INFRA, ('基盤整備方針2018', '本編')), 10),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '03_池袋站Core_Zone_Guideline_2020_表纸至P8.pdf',
+               lambda: find_pdf(IKE_CORE, ('表紙', 'P8')), 8),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '04_池袋站Core_Zone_Guideline_2020_P9至末页.pdf',
+               lambda: find_pdf(IKE_CORE, ('P9', '奥付')), 8),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '05_池袋副都心交通战略2020_表纸目录.pdf',
+               lambda: find_pdf(IKE_TRAFFIC, ('表紙', 'まえがき', '目次')), 1),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '06_池袋副都心交通战略2020_第1章.pdf',
+               lambda: find_pdf(IKE_TRAFFIC, ('第1章', '策定の目的')), 2),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '07_池袋副都心交通战略2020_第2章.pdf',
+               lambda: find_pdf(IKE_TRAFFIC, ('第2章', '目標と基本方針')), 5),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '08_池袋副都心交通战略2020_第3章.pdf',
+               lambda: find_pdf(IKE_TRAFFIC, ('第3章', '交通戦略の推進')), 3),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '09_池袋Terminal导视Sign_Guideline_Ver1.2.pdf',
+               lambda: find_pdf(IKE_SIGN, ('案内サインガイドラインVer1.2',), ('概要版',)), 20),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '10_池袋站导视Sign整备计划_1of2.pdf',
+               lambda: find_pdf(IKE_SIGN, ('池袋駅案内サイン整備計画', '1/2')), 5),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '11_池袋站导视Sign整备计划_2of2.pdf',
+               lambda: find_pdf(IKE_SIGN, ('池袋駅案内サイン整備計画', '2/2')), 5),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '12_池袋地区停车与街区营造Management_Guideline.pdf',
+               lambda: find_pdf(IKE_PARKING_MGMT, ('駐車', 'まちづくりマネジメントガイドライン')), 10),
+              ('04_池袋站城公共空间_规划设计与运营规则完整体系', '13_池袋地区停车场整备计划_2024改订.pdf',
+               lambda: find_pdf(IKE_PARKING_PLAN, ('池袋地区駐車場整備計画',), ('概要',)), 5),
+          ]
+
+          def download_pdf(url: str, target: Path, min_pages: int) -> tuple[int, int, str]:
+              url = to_download_url(url)
+              r = get(url, timeout=90)
+              data = r.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:250].decode('utf-8', errors='replace')
+                  raise RuntimeError(
+                      f'Not a PDF: {url}; content-type={r.headers.get("content-type")}; '
+                      f'bytes={len(data)}; preview={preview!r}'
+                  )
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < min_pages:
+                  raise RuntimeError(f'{target}: pages {pages} below expected minimum {min_pages}')
+
+              # Representative visual render check: first, middle, last.
+              doc = fitz.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'{target}: page-count mismatch pypdf={pages}, fitz={doc.page_count}')
+              indices = sorted(set([0, pages // 2, pages - 1]))
+              for idx in indices:
+                  pix = doc.load_page(idx).get_pixmap(matrix=fitz.Matrix(0.35, 0.35), alpha=False)
+                  if pix.width < 40 or pix.height < 40 or len(pix.samples) < 1000:
+                      raise RuntimeError(f'{target}: failed representative render check at page {idx + 1}')
+              doc.close()
+              digest = hashlib.sha256(data).hexdigest()
+              return pages, len(data), digest
+
+          seen_hashes: dict[str, str] = {}
+          stats: dict[str, dict[str, float]] = {}
+          for idx, (folder, filename, source, min_pages) in enumerate(entries, 1):
+              print(f'\n[{idx}/{len(entries)}] {folder}/{filename}')
+              try:
+                  url = source() if callable(source) else source
+                  print(f'  {url}')
+                  target = ROOT / folder / filename
+                  pages, size, digest = download_pdf(url, target, min_pages)
+                  if digest in seen_hashes:
+                      other = seen_hashes[digest]
+                      target.unlink(missing_ok=True)
+                      raise RuntimeError(f'Duplicate PDF content: {folder}/{filename} == {other}')
+                  seen_hashes[digest] = f'{folder}/{filename}'
+                  stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+                  stat['pdfs'] += 1
+                  stat['pages'] += pages
+                  stat['bytes'] += size
+                  print(f'  accepted {pages} pages {size / 1024 / 1024:.1f} MB sha256={digest[:16]}...')
+              except Exception as exc:
+                  print(f'FAILED {folder}/{filename}: {type(exc).__name__}: {exc}')
+                  raise
+
+          # Package only original PDF files. No index, readme, links, scripts or manifests.
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+
+          # Verify archive entries and PDFs after packaging.
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if len(names) != len(entries):
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {len(entries)}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains a non-PDF entry')
+              bad = zf.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          total_pdfs = sum(int(v['pdfs']) for v in stats.values())
+          total_pages = sum(int(v['pages']) for v in stats.values())
+          total_bytes = sum(int(v['bytes']) for v in stats.values())
+          print('\n=== BATCH 08 VERIFIED SUMMARY ===')
+          for folder, v in stats.items():
+              print(f"{folder}: {int(v['pdfs'])} PDFs, {int(v['pages'])} pages, {v['bytes']/1024/1024:.1f} MB")
+          print({
+              'sets': len(stats),
+              'pdfs': total_pdfs,
+              'pages': total_pages,
+              'source_mb': round(total_bytes / 1024 / 1024, 1),
+              'zip_mb': round(ZIP_PATH.stat().st_size / 1024 / 1024, 1),
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+          })
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch8-complete-project-chains
+          path: output/Rurban_OS_Japan_Batch08_4_Complete_Project_Chains.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
