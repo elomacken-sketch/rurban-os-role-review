@@ -1,0 +1,45 @@
+name: Temporary Discover Shin-Osaka Vision Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-debug-shinosaka-vision.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect official homepage links and serialized URLs
+        shell: python
+        run: |
+          import html
+          import re
+          from urllib.parse import urljoin
+          import requests
+          from bs4 import BeautifulSoup
+
+          url = 'https://shinosaka-south.com/'
+          r = requests.get(url, headers={'User-Agent':'Mozilla/5.0'}, timeout=60)
+          print('STATUS', r.status_code, r.url, r.headers.get('content-type'), len(r.content))
+          r.raise_for_status()
+          text = r.content.decode('utf-8', errors='replace')
+          soup = BeautifulSoup(text, 'html.parser')
+          print('--- LINKS ---')
+          for a in soup.find_all('a', href=True):
+              label = ' '.join(a.stripped_strings)
+              href = urljoin(r.url, a.get('href', ''))
+              print(repr(label), '=>', href)
+          raw = html.unescape(text).replace('\\/', '/').replace('\\u002F','/')
+          print('--- URL CANDIDATES ---')
+          urls = sorted(set(re.findall(r'https?://[^\s"\'<>]+', raw)))
+          for u in urls:
+              if any(k in u.lower() for k in ('pdf','vision','drive','storage.googleapis')):
+                  print(u[:500])
+          print('--- LINES CONTAINING VISION/PDF ---')
+          for line in text.splitlines():
+              if 'vision' in line.lower() or '.pdf' in line.lower() or 'ビジョン' in line:
+                  print(line[:2000])
