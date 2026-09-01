@@ -1,0 +1,185 @@
+name: Temporary Rurban Japan Batch4 Urban
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch4-urban.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf
+
+      - name: Download and verify official PDFs
+        shell: python
+        run: |
+          import concurrent.futures
+          import hashlib
+          import json
+          import re
+          import time
+          import unicodedata
+          from pathlib import Path
+          from urllib.parse import urljoin, urlparse
+
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+
+          plans = [
+            {"id":"U01","category":"01_区域经营与中心市街地","name":"01_川口站周边城市营造指针_素案.pdf","page":"https://www.city.kawaguchi.lg.jp/soshiki/01130/020/kawaguchiekisyuuhenarikatakenntouiinkai_1/49461.html","targets":["まちづくり指針","素案"],"min_pages":35},
+            {"id":"U02","category":"01_区域经营与中心市街地","name":"02_川口站周边城市营造愿景.pdf","page":"https://www.city.kawaguchi.lg.jp/soshiki/01130/020/kawaguchiekisyuuhenarikatakenntouiinkai_1/49461.html","targets":["まちづくりビジョン"],"exclude":["概要"],"min_pages":35},
+            {"id":"U03","category":"01_区域经营与中心市街地","name":"03_南富山站周边城市营造愿景.pdf","url":"https://www.city.toyama.lg.jp/_res/projects/default_project/_page_/001/014/091/240401_vision_all.pdf","min_pages":30},
+            {"id":"U04","category":"01_区域经营与中心市街地","name":"04_南富山站周边城市营造基本计划.pdf","url":"https://www.city.toyama.lg.jp/_res/projects/default_project/_page_/001/014/091/basic_plan_all_.pdf","min_pages":40},
+            {"id":"U05","category":"01_区域经营与中心市街地","name":"05_土岐市站周边城市营造基本构想.pdf","page":"https://www.city.toki.lg.jp/shisei/shisaku/1004913/1010055.html","targets":["基本構想"],"exclude":["概要","意見"],"min_pages":20},
+            {"id":"U06","category":"01_区域经营与中心市街地","name":"06_土岐市站周边城市营造基本计划.pdf","page":"https://www.city.toki.lg.jp/shisei/shisaku/1004913/1010055.html","targets":["基本計画"],"exclude":["概要","意見"],"min_pages":25},
+            {"id":"U07","category":"01_区域经营与中心市街地","name":"07_加古川站周边区域愿景.pdf","url":"https://www.city.kakogawa.lg.jp/material/files/group/196/areavision.pdf","min_pages":45},
+            {"id":"U08","category":"01_区域经营与中心市街地","name":"08_筑波中心城市策略.pdf","url":"https://www.city.tsukuba.lg.jp/material/files/group/122/Full_Text.pdf","min_pages":20},
+            {"id":"U09","category":"01_区域经营与中心市街地","name":"09_港区区域管理指南.pdf","url":"https://www.city.minato.tokyo.jp/documents/147435/01_erimanegaidorain.pdf","min_pages":80},
+            {"id":"U10","category":"01_区域经营与中心市街地","name":"10_丰桥市中心市街地活性化基本计划_2026_2031.pdf","url":"https://www.city.toyohashi.lg.jp/secure/121773/toyohashichukatsukeikaku.pdf","min_pages":110},
+            {"id":"U11","category":"01_区域经营与中心市街地","name":"11_金泽市中心市街地活性化基本计划.pdf","page":"https://www4.city.kanazawa.lg.jp/soshikikarasagasu/kikakuchoseika/gyomuannai/1/2/6856.html","targets":["全文一括ダウンロード"],"min_pages":80},
+            {"id":"U12","category":"01_区域经营与中心市街地","name":"12_姬路市第4期中心市街地活性化基本计划.pdf","url":"https://www.city.himeji.lg.jp/sangyo/cmsfiles/contents/0000030/30306/20250826-2.pdf","min_pages":110},
+            {"id":"U13","category":"01_区域经营与中心市街地","name":"13_宫古岛市中心市街地活性化基本计划.pdf","page":"https://www.city.miyakojima.lg.jp/gyosei/kaihatsu/chukatu.html","targets":["中心市街地活性化基本計画"],"exclude":["概要","変更"],"min_pages":70},
+            {"id":"U14","category":"01_区域经营与中心市街地","name":"14_大田市中心市街地长期计划_前篇.pdf","page":"https://www.city.oda.lg.jp/ohda_city/city_organization/23/594/chukatu/seiann","targets":["長期計画","前編"],"min_pages":20},
+            {"id":"U15","category":"01_区域经营与中心市街地","name":"15_大田市中心市街地长期计划_后篇.pdf","page":"https://www.city.oda.lg.jp/ohda_city/city_organization/23/594/chukatu/seiann","targets":["長期計画","後編"],"min_pages":20},
+            {"id":"U16","category":"01_区域经营与中心市街地","name":"16_大田市中心市街地长期计划_资料篇.pdf","page":"https://www.city.oda.lg.jp/ohda_city/city_organization/23/594/chukatu/seiann","targets":["長期計画","資料編"],"min_pages":15},
+            {"id":"U17","category":"01_区域经营与中心市街地","name":"17_地方区域管理负担金制度指南.pdf","page":"https://www.chisou.go.jp/sousei/about/areamanagement/index.html","targets":["一括ダウンロード"],"min_pages":50},
+            {"id":"U18","category":"01_区域经营与中心市街地","name":"18_第3期伊贺市中心市街地活性化基本计划.pdf","page":"https://www.city.iga.lg.jp/0000011353.html","targets":["第3期","中心市街地活性化基本計画"],"exclude":["概要","意見","回答"],"min_pages":70},
+            {"id":"U19","category":"01_区域经营与中心市街地","name":"19_新发田市中心市街地活性化基本计划.pdf","page":"https://www.city.shibata.lg.jp/machidukuri/seisaku/keikaku/kensetsu/1001853.html","targets":["中心市街地活性化基本計画"],"exclude":["概要","変更"],"min_pages":70},
+            {"id":"U20","category":"01_区域经营与中心市街地","name":"20_第3期山口市中心市街地活性化基本计划.pdf","page":"https://www.city.yamaguchi.lg.jp/soshiki/76/125425.html","targets":["第３期","中心市街地活性化基本計画"],"exclude":["概要","意見"],"min_pages":70},
+            {"id":"U21","category":"02_商业设施与存量更新","name":"21_木更津飞行场周边城市营造基本构想.pdf","page":"https://www.city.kisarazu.lg.jp/soshiki/kikaku/chiikiseisakushitsu/1/kisarazuhikoujou/3073.html","targets":["まちづくり基本構想"],"exclude":["概要","素案"],"min_pages":25},
+            {"id":"U22","category":"02_商业设施与存量更新","name":"22_木更津飞行场周边城市营造基本计划.pdf","page":"https://www.city.kisarazu.lg.jp/soshiki/kikaku/chiikiseisakushitsu/1/kisarazuhikoujou/3071.html","targets":["まちづくり基本計画"],"exclude":["概要","素案"],"min_pages":35},
+            {"id":"U23","category":"02_商业设施与存量更新","name":"23_木更津飞行场周边城市营造实施计划_吾妻公园.pdf","page":"https://www.city.kisarazu.lg.jp/soshiki/kikaku/chiikiseisakushitsu/1/kisarazuhikoujou/9007.html","targets":["まちづくり実施計画","吾妻公園"],"exclude":["概要","素案","意見"],"min_pages":45},
+            {"id":"U24","category":"02_商业设施与存量更新","name":"24_木更津飞行场周边城市营造实施计划_其他3地区.pdf","page":"https://www.city.kisarazu.lg.jp/gyoseijoho/sesaku_keikaku/machidukuri/hikoujyou/12018.html","targets":["まちづくり実施計画","他3地区"],"exclude":["概要","素案","意見"],"min_pages":45},
+            {"id":"U25","category":"02_商业设施与存量更新","name":"25_柏市公设综合地方批发市场再整备基本计划.pdf","page":"https://www.city.kashiwa.lg.jp/kosetsuichiba/saiseibi_public_r7.html","targets":["再整備","基本計画"],"exclude":["概要","意見","資料"],"min_pages":30},
+            {"id":"U26","category":"02_商业设施与存量更新","name":"26_藤井寺市旧市民医院遗址利用基本构想.pdf","page":"https://www.city.fujiidera.lg.jp/soshiki/seisakukikaku/fm/byoinatochi/kousou/21372.html","targets":["基本構想"],"exclude":["概要","意見","ワークショップ"],"min_pages":25},
+            {"id":"U27","category":"02_商业设施与存量更新","name":"27_三好市船井电机旧址设施整备基本计划.pdf","page":"https://www.miyoshi.i-tokushima.jp/docs/5724351.html","targets":["施設整備基本計画"],"exclude":["概要","案に対する"],"min_pages":30},
+            {"id":"U28","category":"02_商业设施与存量更新","name":"28_壬生町厅舍旧址利用基本计划.pdf","page":"https://www.town.mibu.tochigi.jp/docs/2022083000010/","targets":["跡地利活用基本計画"],"exclude":["概要","意見"],"min_pages":30},
+            {"id":"U29","category":"02_商业设施与存量更新","name":"29_竹田市城市再生整备基本计划.pdf","page":"https://www.city.taketa.oita.jp/shisei_machizukuri/shinokeikaku/matidukuri/3523.html","targets":["基本計画"],"exclude":["概要","意見"],"min_pages":30},
+            {"id":"U30","category":"03_商店街运营与地方商业","name":"30_商店街X项目调查报告书.pdf","page":"https://www.kyushu.meti.go.jp/report/2305/230509_1.html","targets":["調査報告書全文"],"min_pages":60},
+            {"id":"U31","category":"03_商店街运营与地方商业","name":"31_商店街X项目活动报告.pdf","page":"https://www.kyushu.meti.go.jp/report/2305/230509_1.html","targets":["商店街Xプロジェクト活動報告"],"min_pages":20},
+            {"id":"U32","category":"03_商店街运营与地方商业","name":"32_日本商店街近代化研究会报告_2025.pdf","page":"https://www.syoutengai.or.jp/snews/nws-2293/","targets":["近代化研究会","報告書"],"min_pages":40},
+            {"id":"U33","category":"03_商店街运营与地方商业","name":"33_商店街实态调查报告_2021_详细版.pdf","page":"https://www.chusho.meti.go.jp/shogyo/shogyo/2022/220408shoutengai.html","targets":["詳細版"],"exclude":["概要"],"min_pages":100},
+            {"id":"U34","category":"03_商店街运营与地方商业","name":"34_居民共创时尚街区研究报告.pdf","page":"https://www.toshi.or.jp/publication/14152/","targets":["全文","PDF"],"min_pages":200},
+            {"id":"U35","category":"03_商店街运营与地方商业","name":"35_地方产业发展与自治体角色研究报告.pdf","page":"https://www.toshi.or.jp/publication/17921/","targets":["全文","PDF"],"min_pages":150}
+          ]
+
+          HEADERS = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+          out = Path('output_urban')
+          pdf_root = out / 'pdfs'
+          pdf_root.mkdir(parents=True, exist_ok=True)
+
+          def norm(s):
+            s = unicodedata.normalize('NFKC', s or '').lower()
+            return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』]+', '', s)
+
+          def get(session, url, **kwargs):
+            last = None
+            for attempt in range(4):
+              try:
+                r = session.get(url, headers=HEADERS, timeout=(25, 180), allow_redirects=True, **kwargs)
+                r.raise_for_status()
+                return r
+              except Exception as e:
+                last = e
+                time.sleep(2 + attempt * 3)
+            raise last
+
+          def resolve_link(plan, session):
+            if plan.get('url'):
+              return plan['url']
+            r = get(session, plan['page'])
+            soup = BeautifulSoup(r.content, 'html.parser')
+            candidates = []
+            targets = [norm(x) for x in plan.get('targets', [])]
+            excludes = [norm(x) for x in plan.get('exclude', [])]
+            for a in soup.find_all('a', href=True):
+              href = urljoin(r.url, a.get('href'))
+              text = ' '.join(a.stripped_strings)
+              blob = norm(text + ' ' + href)
+              if not href.lower().startswith(('http://','https://')):
+                continue
+              if any(x and x in blob for x in excludes):
+                continue
+              score = 0
+              for t in targets:
+                if t and t in blob:
+                  score += 30
+              if href.lower().split('?')[0].endswith('.pdf'):
+                score += 12
+              if 'pdf' in blob:
+                score += 4
+              if '概要' in text or 'gaiyou' in href.lower():
+                score -= 20
+              if score > 0:
+                candidates.append((score, len(text), href, text))
+            if not candidates:
+              raise RuntimeError('no matching PDF link on page')
+            candidates.sort(reverse=True)
+            return candidates[0][2]
+
+          def download_one(plan):
+            session = requests.Session()
+            rec = {**plan, 'status':'failed', 'resolved_url':'', 'pages':0, 'bytes':0, 'sha256':'', 'error':''}
+            target = pdf_root / plan['category'] / plan['name']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_suffix('.part')
+            try:
+              url = resolve_link(plan, session)
+              rec['resolved_url'] = url
+              with get(session, url, stream=True) as r:
+                ctype = (r.headers.get('content-type') or '').lower()
+                with open(tmp, 'wb') as f:
+                  for chunk in r.iter_content(1024 * 1024):
+                    if chunk:
+                      f.write(chunk)
+              size = tmp.stat().st_size
+              if size < 60_000:
+                raise RuntimeError(f'file too small: {size}')
+              with open(tmp, 'rb') as f:
+                head = f.read(8)
+              if not head.startswith(b'%PDF'):
+                raise RuntimeError(f'not a PDF: header={head!r}, content_type={ctype}')
+              reader = PdfReader(str(tmp), strict=False)
+              pages = len(reader.pages)
+              if pages < int(plan.get('min_pages', 15)):
+                raise RuntimeError(f'only {pages} pages; minimum {plan.get("min_pages")}')
+              sha = hashlib.sha256(tmp.read_bytes()).hexdigest()
+              tmp.replace(target)
+              rec.update(status='accepted', pages=pages, bytes=size, sha256=sha)
+              print(f"ACCEPT {plan['id']} {pages}p {size/1024/1024:.1f}MB {url}", flush=True)
+            except Exception as e:
+              if tmp.exists(): tmp.unlink()
+              rec['error'] = f'{type(e).__name__}: {e}'
+              print(f"FAIL {plan['id']} {rec['error']}", flush=True)
+            return rec
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            results = list(ex.map(download_one, plans))
+
+          accepted = [r for r in results if r['status'] == 'accepted']
+          with open(out / 'manifest.json', 'w', encoding='utf-8') as f:
+            json.dump({'attempted':len(results),'accepted':len(accepted),'results':results}, f, ensure_ascii=False, indent=2)
+          print(f"FINAL urban accepted={len(accepted)}/{len(results)} pages={sum(r['pages'] for r in accepted)}", flush=True)
+          if len(accepted) < 12:
+            raise SystemExit('too few verified urban/commercial PDFs')
+
+      - name: Upload verified files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch4-urban
+          path: output_urban
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
