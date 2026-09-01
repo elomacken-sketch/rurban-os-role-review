@@ -28,10 +28,12 @@ jobs:
           script = data['jobs']['build']['steps'][2]['run']
 
           old_decode = "    text = r.text"
-          new_decode = """    try:
-        text = r.content.decode('utf-8')
-    except UnicodeDecodeError:
-        text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')"""
+          new_decode = (
+              "    try:\n"
+              "        text = r.content.decode('utf-8')\n"
+              "    except UnicodeDecodeError:\n"
+              "        text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')"
+          )
           if old_decode not in script:
               raise SystemExit('Expected HTML decoding line not found')
           script = script.replace(old_decode, new_decode, 1)
