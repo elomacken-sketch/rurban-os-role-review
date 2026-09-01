@@ -1,0 +1,87 @@
+name: Temporary Rurban Japan Batch5 V2
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/temp-rurban-japan-batch5-v2.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - run: python -m pip install --quiet requests pypdf
+      - name: Download verify package
+        shell: python
+        run: |
+          import hashlib,json,time,zipfile
+          from pathlib import Path
+          import requests
+          from pypdf import PdfReader
+          F=[
+          ('01_神户三宫_都心商业核心区一体化更新','01_神户都心未来愿景_2015.pdf','https://www.city.kobe.lg.jp/documents/13520/shouraivision_etsuran_1.pdf',15),
+          ('01_神户三宫_都心商业核心区一体化更新','02_三宫周边地区再整备基本构想_2015.pdf','https://www.city.kobe.lg.jp/documents/12263/sannomiyakousou_etsuran_1.pdf',15),
+          ('01_神户三宫_都心商业核心区一体化更新','03_神户三宫站城空间基本计划.pdf','https://www.city.kobe.lg.jp/documents/14630/ekimachi-kihonkeikaku_1.pdf',30),
+          ('01_神户三宫_都心商业核心区一体化更新','04_都心三宫再整备总体事业费及经济效果报告.pdf','https://www.city.kobe.lg.jp/documents/28908/keizaikouka_houkoku_s_2006.pdf',10),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','01_栄地区GrandVision.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/893/sakaegvhph26.5.pdf',10),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','02_再整备构想_表纸及目录.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/hyoushimokuji.pdf',2),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','03_再整备构想_策定说明.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/sakuteiniatatte.pdf',1),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','04_再整备构想_再生必要性.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/saiseinohitsuyousei.pdf',2),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','05_再整备构想_北区及电视塔区现状.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/kitaeriaterebitouerianojyoukyou.pdf',2),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','06_再整备构想_南区现状与课题.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/minamierianogenjoutokadai.pdf',4),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','07_再整备构想_核心概念.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/saiseibikonseputo.pdf',4),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','08_再整备构想_空间整备方向.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/seibinohoukousei.pdf',10),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','09_再整备构想_管理运营方向.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/kanriuneinohoukousei.pdf',1),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','10_再整备构想_与周边城市联动方向.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/hisayaoodooritomachinorenkeinohoukousei.pdf',1),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','11_再整备构想_参考资料.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/sankoushiryou.pdf',4),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','12_市民意见及市政府回应.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/009/894/shiminikennogaiyoushinokangaekata.pdf',20),
+          ('02_名古屋栄_久屋大通南区完整再整备体系','13_民间市场Sounding调查结果.pdf','https://www.city.nagoya.jp/_res/projects/default_project/_page_/001/032/459/kekkagaiyou.pdf',2),
+          ('03_日光鬼怒川温泉站前_文旅门户复合设施','01_鬼怒川温泉站前再整备基本计划_2026.pdf','https://www.city.nikko.lg.jp/material/files/group/27/kihonkeikaku.pdf',20),
+          ('04_横滨山下码头_滨水文旅综合再开发','01_山下码头再开发事业计划案_2026.pdf','https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/jigyoukeikakuan.pdf',55),
+          ('04_横滨山下码头_滨水文旅综合再开发','02_基本方向与事业计划案对照表.pdf','https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/hikakuhyo.pdf',8),
+          ('04_横滨山下码头_滨水文旅综合再开发','03_市民意见募集实施结果_344页.pdf','https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/shiminniken_kekka.pdf',300),
+          ('04_横滨山下码头_滨水文旅综合再开发','04_市民研讨会实施结果.pdf','https://www.city.yokohama.lg.jp/city-info/yokohamashi/yokohamako/kkihon/keikaku/yamashita/joi/aratanajigyoukeikaku.files/shiminnkentoukai_kekka.pdf',6)]
+          out=Path('output'); root=out/'Rurban_OS_日本相对完整方案库_第05批_4套项目'; root.mkdir(parents=True,exist_ok=True)
+          s=requests.Session(); s.headers.update({'User-Agent':'Mozilla/5.0 Chrome/124','Accept':'application/pdf,*/*;q=0.8','Accept-Language':'ja,en;q=0.7'})
+          rec=[]; total=0
+          for i,(folder,name,url,minimum) in enumerate(F,1):
+            d=root/folder; d.mkdir(parents=True,exist_ok=True); p=d/name; tmp=p.with_suffix('.part'); err=None
+            print(f'[{i}/{len(F)}] {name}',flush=True)
+            for a in range(4):
+              try:
+                with s.get(url,stream=True,timeout=(30,300),allow_redirects=True) as r:
+                  r.raise_for_status()
+                  with open(tmp,'wb') as fh:
+                    for c in r.iter_content(1048576):
+                      if c: fh.write(c)
+                if tmp.stat().st_size<30000: raise RuntimeError('too small')
+                with open(tmp,'rb') as fh:
+                  if not fh.read(8).startswith(b'%PDF'): raise RuntimeError('not pdf')
+                rd=PdfReader(str(tmp),strict=False); n=len(rd.pages)
+                if n<minimum: raise RuntimeError(f'pages {n} below {minimum}')
+                for x in {0,n//2,n-1}: _=rd.pages[x].mediabox
+                tmp.replace(p); total+=n; rec.append({'folder':folder,'name':name,'pages':n,'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}); err=None
+                print(f' accepted {n} pages {p.stat().st_size/1048576:.1f}MB',flush=True); break
+              except Exception as e:
+                err=f'{type(e).__name__}: {e}'
+                if tmp.exists(): tmp.unlink()
+                if a<3: time.sleep(4*(a+1))
+            if err: raise SystemExit(f'FAILED {name}: {err}')
+          zpath=out/'Rurban_OS_Japan_Batch05_4_Complete_Project_Sets.zip'
+          with zipfile.ZipFile(zpath,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+            for p in sorted(root.rglob('*.pdf')): z.write(p,p.relative_to(root.parent))
+          with zipfile.ZipFile(zpath) as z:
+            if z.testzip(): raise SystemExit('bad zip')
+            if len([n for n in z.namelist() if n.lower().endswith('.pdf')])!=len(F): raise SystemExit('count mismatch')
+          m={'project_sets':4,'pdf_count':len(F),'total_pages':total,'zip_bytes':zpath.stat().st_size,'records':rec}
+          (out/'manifest.json').write_text(json.dumps(m,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps({k:m[k] for k in ('project_sets','pdf_count','total_pages','zip_bytes')},ensure_ascii=False),flush=True)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch5-complete-sets-v2
+          path: |
+            output/Rurban_OS_Japan_Batch05_4_Complete_Project_Sets.zip
+            output/manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
