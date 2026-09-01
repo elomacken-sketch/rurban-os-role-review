@@ -1,0 +1,70 @@
+name: Temporary Rurban Japan Batch10 Complete Project Chains V3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch10-v3.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf pyyaml
+
+      - name: Execute corrected batch10 downloader
+        shell: python
+        run: |
+          from pathlib import Path
+          import yaml
+
+          source = Path('.github/workflows/temp-rurban-japan-batch10.yml')
+          data = yaml.safe_load(source.read_text(encoding='utf-8'))
+          script = data['jobs']['build']['steps'][1]['run']
+
+          removals = [
+              "FUKU_POLICY_PC = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/292474.html'\n",
+              "add(fukuyama, '05_基本方针公众意见及政府回应.pdf', lambda: resolve_pdf(FUKU_POLICY_PC, ('パブリックコメント', '実施結果')), 1)\n",
+          ]
+          for old in removals:
+              if old not in script:
+                  raise SystemExit(f'Expected removal target not found: {old!r}')
+              script = script.replace(old, '', 1)
+
+          replacements = [
+              (
+                  "add(fukuyama, '06_站前广场整备基本计划_2026.pdf'",
+                  "add(fukuyama, '05_站前广场整备基本计划_2026.pdf'",
+              ),
+              (
+                  "add(fukuyama, '07_基本计划公众意见及政府回应.pdf'",
+                  "add(fukuyama, '06_基本计划公众意见及政府回应.pdf'",
+              ),
+              (
+                  "    fukuyama: 7,",
+                  "    fukuyama: 6,",
+              ),
+          ]
+          for old, new in replacements:
+              if old not in script:
+                  raise SystemExit(f'Expected replacement target not found: {old!r}')
+              script = script.replace(old, new, 1)
+
+          exec(compile(script, '<batch10-v3>', 'exec'), {'__name__': '__main__'})
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch10-complete-project-chains-v3
+          path: |
+            output/Rurban_OS_Japan_Batch10_4_Complete_Project_Chains.zip
+            output/batch10_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
