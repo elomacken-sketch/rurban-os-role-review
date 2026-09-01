@@ -1,0 +1,145 @@
+name: Temporary Rurban Japan Plan Downloader Supplement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-plans-supplement.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests pypdf
+
+      - name: Download and verify supplemental official PDFs
+        shell: python
+        run: |
+          import concurrent.futures
+          import json
+          import time
+          import zipfile
+          from pathlib import Path
+
+          import requests
+          from pypdf import PdfReader
+
+          plans = [
+              {"id":"OMY03","name":"25_大丸有_导视设计手册2009.pdf","url":"https://www.omy-committee.jp/contents/wp-content/uploads/2022/08/design_man_2009.pdf","min_pages":15},
+              {"id":"OMY04","name":"26_大丸有_绿色设计手册_本篇.pdf","url":"https://www.omy-committee.jp/images/green_design_manual-main.pdf","min_pages":20},
+              {"id":"OMY15","name":"27_Ecozzeria协会_CSR报告2016.pdf","url":"https://www.ecozzeria.jp/pdf/about/csrreport2016.pdf","min_pages":15},
+              {"id":"IKB03","name":"28_池袋站核心区指南2020_前篇.pdf","url":"https://www.city.toshima.lg.jp/documents/30124/ikebukuroeki_corezone_gl2020_1.pdf","min_pages":8},
+              {"id":"IKB04","name":"29_池袋站核心区指南2020_后篇.pdf","url":"https://www.city.toshima.lg.jp/documents/30124/ikebukuroeki_corezone_gl2020_2.pdf","min_pages":18},
+              {"id":"IKB06","name":"30_池袋站周边基础设施整备方针2018.pdf","url":"https://www.city.toshima.lg.jp/documents/17297/kibanseibihosin_honpen.pdf","min_pages":18},
+              {"id":"UME01","name":"31_梅北二期地区城市营造方针_本篇.pdf","url":"https://www.pref.osaka.lg.jp/documents/2434/umekita2ki_hoshin_1.pdf","min_pages":18},
+              {"id":"UME02","name":"32_梅北二期地区城市营造方针_资料篇.pdf","url":"https://www.pref.osaka.lg.jp/documents/2434/umekita2ki_hoshin_siryou_1.pdf","min_pages":18},
+              {"id":"SHB01","name":"33_涩谷站周边整备_Guide_Plan_21.pdf","url":"https://files.city.shibuya.tokyo.jp/assets/12995aba8b194961be709ba879857f70/593caf9e8fd24db2b6472cd7093d1ed1/assets_detail_files_kurashi_machi_pdf_machi_21_gaiyo.pdf","min_pages":12},
+              {"id":"SHB02","name":"34_涩谷站中心地区城市营造指南2007.pdf","url":"https://files.city.shibuya.tokyo.jp/assets/12995aba8b194961be709ba879857f70/83e3d8a20973444ca02eba692c5da073/assets_detail_files_kurashi_machi_pdf_guidelines2007.pdf","min_pages":20},
+              {"id":"SHB03","name":"35_涩谷站周边城市营造基本理念.pdf","url":"https://files.city.shibuya.tokyo.jp/assets/12995aba8b194961be709ba879857f70/7f4d615d67f44d699430bf18745e2b55/assets_kankyo_000049574.pdf","min_pages":8},
+              {"id":"DMO01","name":"36_DMO形成确立计划指南_第1部.pdf","url":"https://www.mlit.go.jp/kankocho/content/001229602.pdf","min_pages":40},
+              {"id":"DMO02","name":"37_DMO形成确立计划指南_第2部.pdf","url":"https://www.mlit.go.jp/kankocho/content/001229603.pdf","min_pages":20},
+              {"id":"DMO03","name":"38_DMO形成确立计划指南_第3部.pdf","url":"https://www.mlit.go.jp/kankocho/content/001229604.pdf","min_pages":45},
+              {"id":"DMO12","name":"39_观光地域营销指南.pdf","url":"https://www.mlit.go.jp/kankocho/content/001580600.pdf","min_pages":35},
+              {"id":"DMO17","name":"40_高附加值访日旅游经济指标实证方案.pdf","url":"https://www.mlit.go.jp/kankocho/content/001884363.pdf","min_pages":40},
+              {"id":"DMO18","name":"41_海外先进DMO调查报告.pdf","url":"https://www.mlit.go.jp/kankocho/content/001761270.pdf","min_pages":55},
+              {"id":"DMO19","name":"42_日本国内DMO指标测算调查.pdf","url":"https://www.mlit.go.jp/kankocho/content/001761271.pdf","min_pages":35},
+              {"id":"DMO20","name":"43_日本国内DMO组织运营调查.pdf","url":"https://www.mlit.go.jp/kankocho/content/001761272.pdf","min_pages":18},
+              {"id":"DMO32","name":"44_跨经营主体协同提升旅游产业附加值案例集.pdf","url":"https://www.mlit.go.jp/kankocho/content/001734572.pdf","min_pages":20},
+              {"id":"DMO33","name":"45_可持续旅游内容升级案例集.pdf","url":"https://www.mlit.go.jp/kankocho/content/001878199.pdf","min_pages":45},
+              {"id":"DMO40","name":"46_历史资源旅游营造知识集2025.pdf","url":"https://www.mlit.go.jp/kankocho/content/002000637.pdf","min_pages":35},
+              {"id":"DMO43","name":"47_历史资源旅游营造融资知识集2023.pdf","url":"https://www.mlit.go.jp/kankocho/content/001843533.pdf","min_pages":50},
+              {"id":"DMO45","name":"48_文化财活用顺畅化案例集2022.pdf","url":"https://www.mlit.go.jp/kankocho/content/001630726.pdf","min_pages":20},
+              {"id":"DMO46","name":"49_文化财活用案例流程图集2022.pdf","url":"https://www.mlit.go.jp/kankocho/content/001630727.pdf","min_pages":18},
+              {"id":"DMO49","name":"50_古民家等历史资源旅游营造实施报告2021.pdf","url":"https://www.mlit.go.jp/kankocho/content/001513160.pdf","min_pages":110},
+              {"id":"ART06","name":"51_日本博效果验证报告.pdf","url":"https://japanculturalexpo.bunka.go.jp/ja/report/assets/pdf/effect_verification_report_202203.pdf","min_pages":30},
+              {"id":"OSD02","name":"52_PLATEAU_景观设计工具_技术验证报告.pdf","url":"https://www.mlit.go.jp/plateau/file/libraries/doc/plateau_tech_doc_0137_ver01.pdf","min_pages":20},
+              {"id":"SAI00","name":"53_埼玉国际艺术节_基本构想改订版.pdf","url":"https://www.city.saitama.lg.jp/004/005/001/004/kakonokaisaijoukyou/001/p088877_d/fil/geijutusaikihonkousou.pdf","min_pages":25},
+              {"id":"SAI01","name":"54_埼玉国际艺术节2023_開催实施计划.pdf","url":"https://www.city.saitama.lg.jp/004/005/001/004/kakonokaisaijoukyou/001/p088877_d/fil/kaisaijissikeikaku2023.pdf","min_pages":20},
+              {"id":"SAI02","name":"55_埼玉国际艺术节2023_開催报告书.pdf","url":"https://www.city.saitama.lg.jp/004/005/001/004/kakonokaisaijoukyou/001/p116127_d/fil/kaisaihoukokusyo.pdf","min_pages":30},
+              {"id":"SIAF00","name":"56_札幌国际艺术节_基本构想.pdf","url":"https://www.city.sapporo.jp/shimin/bunka/sapporokokusaigeijutsusai/documents/kihonkousou.pdf","min_pages":25},
+          ]
+
+          out = Path('output')
+          pdf_dir = out / 'pdfs'
+          pdf_dir.mkdir(parents=True, exist_ok=True)
+
+          def download(plan):
+              record = {**plan, 'status':'failed', 'pages':None, 'bytes':0, 'error':''}
+              target = pdf_dir / plan['name']
+              tmp = target.with_suffix('.part')
+              session = requests.Session()
+              session.headers.update({
+                  'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+                  'Accept': 'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+                  'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+              })
+              try:
+                  for attempt in range(1, 4):
+                      try:
+                          with session.get(plan['url'], stream=True, timeout=(25, 180), allow_redirects=True) as r:
+                              r.raise_for_status()
+                              with open(tmp, 'wb') as f:
+                                  for chunk in r.iter_content(chunk_size=1024*1024):
+                                      if chunk:
+                                          f.write(chunk)
+                          break
+                      except Exception:
+                          if tmp.exists(): tmp.unlink()
+                          if attempt == 3: raise
+                          time.sleep(attempt * 3)
+                  size = tmp.stat().st_size
+                  if size < 50_000:
+                      raise RuntimeError(f'file too small: {size}')
+                  with open(tmp, 'rb') as f:
+                      head = f.read(8)
+                  if not head.startswith(b'%PDF'):
+                      raise RuntimeError(f'not PDF header: {head!r}')
+                  reader = PdfReader(str(tmp), strict=False)
+                  pages = len(reader.pages)
+                  if pages < plan['min_pages']:
+                      raise RuntimeError(f'page count {pages} below minimum {plan["min_pages"]}')
+                  tmp.replace(target)
+                  record.update(status='accepted', pages=pages, bytes=size, error='')
+              except Exception as e:
+                  record['error'] = f'{type(e).__name__}: {e}'
+                  if tmp.exists(): tmp.unlink()
+              return record
+
+          results = []
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+              futures = {ex.submit(download, p): p for p in plans}
+              for fut in concurrent.futures.as_completed(futures):
+                  r = fut.result()
+                  results.append(r)
+                  print(f"{r['id']} {r['status']} pages={r['pages']} bytes={r['bytes']} error={r['error']}", flush=True)
+
+          results.sort(key=lambda r: int(r['name'].split('_',1)[0]))
+          accepted = [r for r in results if r['status'] == 'accepted']
+          final_zip = out / 'Rurban_OS_日本高质量完整方案库_第03批_补充实际下载原件.zip'
+          with zipfile.ZipFile(final_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for r in accepted:
+                  p = pdf_dir / r['name']
+                  zf.write(p, arcname=r['name'])
+
+          with open(out / 'download_manifest.json', 'w', encoding='utf-8') as f:
+              json.dump({'accepted_count':len(accepted), 'attempted_count':len(results), 'results':results}, f, ensure_ascii=False, indent=2)
+
+          print(f"FINAL accepted={len(accepted)}/{len(results)} zip={final_zip.stat().st_size/1024/1024:.1f}MB", flush=True)
+          if len(accepted) < 12:
+              raise SystemExit('Too few verified supplemental PDFs were downloaded')
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-plans-batch3-supplement
+          path: |
+            output/Rurban_OS_日本高质量完整方案库_第03批_补充实际下载原件.zip
+            output/download_manifest.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
