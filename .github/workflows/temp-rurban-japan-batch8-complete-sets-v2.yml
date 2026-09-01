@@ -1,0 +1,53 @@
+name: Temporary Rurban Japan Batch8 Complete Project Chains V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch8-complete-sets-v2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf pyyaml
+      - name: Execute corrected batch8 downloader
+        shell: python
+        run: |
+          from pathlib import Path
+          import yaml
+
+          source = Path('.github/workflows/temp-rurban-japan-batch8-complete-sets.yml')
+          data = yaml.safe_load(source.read_text(encoding='utf-8'))
+          script = data['jobs']['build']['steps'][2]['run']
+
+          old_decode = "    text = r.text"
+          new_decode = """    try:
+        text = r.content.decode('utf-8')
+    except UnicodeDecodeError:
+        text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')"""
+          if old_decode not in script:
+              raise SystemExit('Expected HTML decoding line not found')
+          script = script.replace(old_decode, new_decode, 1)
+
+          old_comment = "lambda: find_pdf(OKAZAKI_COMMENT, ('提出された意見の概要', '岡崎市の考え方'))"
+          new_comment = "'https://www.city.okazaki.lg.jp/_res/projects/default_project/_page_/001/006/275/file03.pdf'"
+          if old_comment not in script:
+              raise SystemExit('Expected QURUWA comment resolver not found')
+          script = script.replace(old_comment, new_comment, 1)
+
+          exec(compile(script, '<batch8-v2>', 'exec'), {'__name__': '__main__'})
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch8-complete-project-chains-v2
+          path: output/Rurban_OS_Japan_Batch08_4_Complete_Project_Chains.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
