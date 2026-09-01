@@ -1,0 +1,347 @@
+name: Temporary Rurban Japan Batch9 Complete Project Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch9-complete-chains.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+
+      - name: Download, validate, render-check and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import hashlib
+          import html as htmlmod
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          ROOT = Path('output/Rurban_OS_Japan_Batch09_4_Complete_Project_Chains')
+          ZIP_PATH = Path('output/Rurban_OS_Japan_Batch09_4_Complete_Project_Chains.zip')
+          shutil.rmtree(ROOT, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          session = requests.Session()
+          retry = Retry(
+              total=5,
+              connect=5,
+              read=5,
+              backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/152.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              value = unicodedata.normalize('NFKC', htmlmod.unescape(value or '')).lower()
+              return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』<>:：,，.。]+', '', value)
+
+          def get(url: str, timeout: int = 75) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      r = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      r.raise_for_status()
+                      return r
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}', flush=True)
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          page_cache: dict[str, tuple[str, list[tuple[str, str]]]] = {}
+
+          def page_links(page_url: str) -> tuple[str, list[tuple[str, str]]]:
+              if page_url in page_cache:
+                  return page_cache[page_url]
+              r = get(page_url)
+              try:
+                  text = r.content.decode('utf-8')
+              except UnicodeDecodeError:
+                  text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')
+              soup = BeautifulSoup(text, 'html.parser')
+              found: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for a in soup.find_all('a', href=True):
+                  href = urljoin(r.url, a.get('href', '').strip())
+                  href = href.replace('/page/cmsfiles/', '/cmsfiles/')
+                  label = ' '.join(a.stripped_strings)
+                  if href and href not in seen:
+                      seen.add(href)
+                      found.append((label, href))
+              raw = htmlmod.unescape(text).replace('\\/', '/').replace('\\u002F', '/')
+              for pattern in [
+                  r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?',
+                  r'https?://[^\s"\'<>]+?\.PDF(?:\?[^\s"\'<>]*)?',
+              ]:
+                  for href in re.findall(pattern, raw):
+                      href = href.rstrip('\\,;)]}')
+                      if href not in seen:
+                          seen.add(href)
+                          found.append(('', href))
+              page_cache[page_url] = (text, found)
+              print(f'DISCOVER {page_url}: {len(found)} links', flush=True)
+              return page_cache[page_url]
+
+          def ranked_matches(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = (), pdf_only: bool = True):
+              _, links = page_links(page_url)
+              inc = tuple(norm(x) for x in include)
+              exc = tuple(norm(x) for x in exclude)
+              ranked = []
+              for label, href in links:
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in inc):
+                      continue
+                  if any(x in blob for x in exc):
+                      continue
+                  low = href.lower()
+                  if pdf_only and '.pdf' not in low:
+                      continue
+                  score = 0
+                  if '.pdf' in low:
+                      score += 100
+                  score += sum(30 for x in inc if x in norm(label))
+                  if '概要' in label or '概要版' in label:
+                      score -= 25
+                  score -= len(href) // 200
+                  ranked.append((score, label, href))
+              ranked.sort(reverse=True)
+              return ranked
+
+          def find_pdf(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = (), occurrence: int = 0) -> str:
+              ranked = ranked_matches(page_url, include, exclude, pdf_only=True)
+              if len(ranked) <= occurrence:
+                  _, links = page_links(page_url)
+                  available = '\n'.join(f'    {label[:100]} -> {href}' for label, href in links if '.pdf' in href.lower())
+                  raise RuntimeError(f'No PDF matched {include!r} excluding {exclude!r} occurrence={occurrence} on {page_url}\n{available}')
+              chosen = ranked[occurrence]
+              print(f'RESOLVE PDF {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          def find_pdf_any(page_url: str, alternatives: tuple[tuple[str, ...], ...], exclude: tuple[str, ...] = ()) -> str:
+              errors = []
+              for inc in alternatives:
+                  try:
+                      return find_pdf(page_url, inc, exclude)
+                  except Exception as exc:
+                      errors.append(str(exc).splitlines()[0])
+              raise RuntimeError(f'No alternative PDF match on {page_url}: {errors}')
+
+          def find_page(index_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = ()) -> str:
+              ranked = ranked_matches(index_url, include, exclude, pdf_only=False)
+              ranked = [r for r in ranked if '.pdf' not in r[2].lower()]
+              if not ranked:
+                  _, links = page_links(index_url)
+                  available = '\n'.join(f'    {label[:100]} -> {href}' for label, href in links)
+                  raise RuntimeError(f'No page matched {include!r} excluding {exclude!r} on {index_url}\n{available}')
+              chosen = ranked[0]
+              print(f'RESOLVE PAGE {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          entries: list[tuple[str, str, object, int]] = []
+          def add(folder: str, filename: str, source: object, min_pages: int = 1):
+              entries.append((folder, filename, source, min_pages))
+
+          # 01 Omiya GCS: early strategic diagnosis -> integrated station-city concept ->
+          # executable plan -> district-wide parking operations rules.
+          OMIYA_VISION = 'https://www.city.saitama.lg.jp/001/010/015/004/001/003/p011083.html'
+          OMIYA_CONCEPT = 'https://www.city.saitama.lg.jp/001/010/015/004/007/001/001/p052328.html'
+          OMIYA_PLAN = 'https://www.city.saitama.lg.jp/001/010/015/004/007/001/002/p080137.html'
+          OMIYA_PARKING = 'https://www.city.saitama.lg.jp/001/010/015/004/007/001/002/p099790.html'
+          omiya = '01_大宫GCS_站城交通基盘与停车运营规则完整体系'
+          add(omiya, '01_战略愿景_制定基本方针.pdf', lambda: find_pdf(OMIYA_VISION, ('1.', 'はじめに', '基本方針')), 3)
+          add(omiya, '02_战略愿景_制定视点.pdf', lambda: find_pdf(OMIYA_VISION, ('2.', '戦略ビジョン策定の視点')), 3)
+          add(omiya, '03_战略愿景_未来图景.pdf', lambda: find_pdf(OMIYA_VISION, ('3.', '将来像')), 3)
+          add(omiya, '04_战略愿景_实现战略.pdf', lambda: find_pdf(OMIYA_VISION, ('4.', '将来像を実現するための戦略')), 5)
+          add(omiya, '05_战略愿景_推进机制.pdf', lambda: find_pdf(OMIYA_VISION, ('5.', '戦略ビジョンの推進')), 3)
+          add(omiya, '06_战略愿景_检讨经过_1.pdf', lambda: find_pdf(OMIYA_VISION, ('6.', '検討の経緯', '1')), 3)
+          add(omiya, '07_战略愿景_检讨经过_2.pdf', lambda: find_pdf(OMIYA_VISION, ('6.', '検討の経緯', '2')), 3)
+          add(omiya, '08_大宫GCS化构想_正式原文.pdf', lambda: find_pdf(OMIYA_CONCEPT, ('大宮駅グランドセントラルステーション化構想',), ('冊子', '概要版')), 15)
+          add(omiya, '09_大宫GCS_Plan2020_P1-84.pdf', lambda: find_pdf(OMIYA_PLAN, ('p.1-84',)), 50)
+          add(omiya, '10_大宫GCS_Plan2020_P85-118.pdf', lambda: find_pdf(OMIYA_PLAN, ('p.85-118',)), 20)
+          add(omiya, '11_都市再生停车设施配置计划.pdf', lambda: find_pdf(OMIYA_PARKING, ('都市再生駐車施設配置計画', '本編')), 10)
+          add(omiya, '12_停车地域规则_运营手册.pdf', lambda: find_pdf(OMIYA_PARKING, ('運用マニュアル',)), 10)
+          add(omiya, '13_停车地域规则_运营细则及申请格式.pdf', lambda: find_pdf(OMIYA_PARKING, ('運用細則',)), 3)
+
+          # 02 Kure Station: diagnosis and market dialogue -> proposal -> basic plan ->
+          # national bus-terminal coordination -> private partner selection -> contracts -> current design.
+          KURE_INDEX = 'https://www.city.kure.lg.jp/soshiki/90/'
+          KURE_ISSUES = 'https://www.city.kure.lg.jp/soshiki/90/sougoukaihatu1.html'
+          KURE_MARKET = 'https://www.city.kure.lg.jp/soshiki/90/sougoukaihatu3.html'
+          KURE_PROPOSAL = 'https://www.city.kure.lg.jp/soshiki/90/sougoukaihatu4.html'
+          KURE_BASIC = 'https://www.city.kure.lg.jp/soshiki/90/kihonkeikaku.html'
+          KURE_PPP = 'https://www.city.kure.lg.jp/soshiki/90/kureekiproposal001.html'
+          KURE_CONTRACT = 'https://www.city.kure.lg.jp/soshiki/90/kureekikaihatsu011.html'
+          KURE_FORUM = 'https://www.city.kure.lg.jp/soshiki/90/forum2024.html'
+          kure = '02_吴站周边_综合交通枢纽与民间复合开发PPP链条'
+          add(kure, '01_区域现状与问题诊断.pdf', lambda: find_pdf_any(KURE_ISSUES, (('現状', '課題'), ('呉駅周辺地域', '課題'))), 5)
+          add(kure, '02_民间市场需求及开发检讨.pdf', lambda: find_pdf_any(KURE_MARKET, (('ニーズ調査', '結果'), ('市場ニーズ',), ('開発検討',))), 5)
+          add(kure, '03_呉站周边综合开发提言书.pdf', lambda: find_pdf(KURE_PROPOSAL, ('呉駅周辺地域総合開発に関する提言書',), ('案',)), 10)
+          add(kure, '04_呉站周边综合开发基本计划.pdf', lambda: find_pdf(KURE_BASIC, ('呉駅周辺地域総合開発基本計画',)), 30)
+          add(kure, '05_国道31号呉站交通Terminal事业计划.pdf', lambda: find_pdf(find_page(KURE_INDEX, ('交通ターミナル整備事業計画をとりまとめました',)), ('交通ターミナル整備事業計画',)), 10)
+          add(kure, '06_呉站前空间Vision2023.pdf', lambda: find_pdf(find_page(KURE_INDEX, ('呉駅前空間ビジョン2023',)), ('呉駅前空間ビジョン2023',)), 5)
+          add(kure, '07_第1期PPP_募集要项.pdf', lambda: find_pdf(KURE_PPP, ('募集要項',)), 5)
+          add(kure, '08_第1期PPP_附属资料.pdf', lambda: find_pdf(KURE_PPP, ('添付資料',)), 20)
+          add(kure, '09_C区市有财产无偿转让合同概要.pdf', lambda: find_pdf(KURE_CONTRACT, ('cゾーン', '無償譲渡契約')), 1)
+          add(kure, '10_B区市有财产转让合同概要.pdf', lambda: find_pdf(KURE_CONTRACT, ('bゾーン', '財産譲渡契約')), 1)
+          add(kure, '11_综合开发整备概要_2024.pdf', lambda: find_pdf(KURE_FORUM, ('総合開発整備概要',)), 3)
+
+          # 03 Maebashi: public/private urban design -> center-city plan -> follow-up evaluation ->
+          # regeneration plans and implementation plan -> public-space operations playbook.
+          MAE_URBAN = 'https://www.city.maebashi.gunma.jp/sangyo_business/1/5/25144.html'
+          MAE_FOLLOW = 'https://www.city.maebashi.gunma.jp/sangyo_business/4/4/9902.html'
+          MAE_REGEN1 = 'https://www.city.maebashi.gunma.jp/sangyo_business/1/2/4/9999.html'
+          MAE_REGEN2 = 'https://www.city.maebashi.gunma.jp/soshiki/toshikeikakubu/shigaichiseibi/gyomu/4/35959.html'
+          MAE_GENERAL = 'https://www.city.maebashi.gunma.jp/sangyo_business/1/2/4/9997.html'
+          MAE_OPEN = 'https://www.city.maebashi.gunma.jp/sangyo_business/1/5/39808.html'
+          maebashi = '03_前桥都心_公民协作UrbanDesign与年度评价闭环'
+          add(maebashi, '01_前桥市UrbanDesign_正式版.pdf', lambda: find_pdf_any(MAE_URBAN, (('前橋市アーバンデザイン', 'pdf'), ('アーバンデザイン', '本編'), ('アーバンデザイン',)), ('ワークショップ', '概要')), 30)
+          add(maebashi, '02_中心市街地活性化基本计划_本篇.pdf', lambda: find_pdf(MAE_FOLLOW, ('中心市街地活性化基本計画', '本編'), ('フォローアップ',)), 30)
+          add(maebashi, '03_中心市街地活性化基本计划_资料篇.pdf', lambda: find_pdf(MAE_FOLLOW, ('中心市街地活性化基本計画', '資料編'), ('フォローアップ',)), 30)
+          add(maebashi, '04_中心市街地活性化_FinalFollowUp_本篇.pdf', lambda: find_pdf(MAE_FOLLOW, ('フォローアップ', '本編')), 10)
+          add(maebashi, '05_中心市街地活性化_FinalFollowUp_资料篇.pdf', lambda: find_pdf(MAE_FOLLOW, ('フォローアップ', '資料編')), 10)
+          add(maebashi, '06_中心据点地区_第1期都市再生整备计划.pdf', lambda: find_pdf(MAE_REGEN1, ('都市再生整備計画',), ('事後評価',)), 5)
+          add(maebashi, '07_中心据点地区_第1期事后评价.pdf', lambda: find_pdf(MAE_REGEN1, ('事後評価',)), 3)
+          add(maebashi, '08_中心据点地区_第2期都市再生整备计划.pdf', lambda: find_pdf(MAE_REGEN2, ('都市再生整備計画', '第3回変更')), 5)
+          add(maebashi, '09_市街地综合再生计划_2025改订.pdf', lambda: find_pdf(MAE_GENERAL, ('市街地総合再生計画',), ('概要版', '冊子用', '実施計画書')), 20)
+          add(maebashi, '10_市街地综合再生计划_实施计划书.pdf', lambda: find_pdf(MAE_GENERAL, ('市街地総合再生計画実施計画書',)), 5)
+          add(maebashi, '11_UrbanDesign式开放场地运营手册.pdf', lambda: find_pdf_any(MAE_OPEN, (('オープンサイト編', '冊子'), ('オープンサイト編',))), 10)
+
+          # 04 Hiroshima Peace Boulevard: public vision and comments -> detailed spatial image ->
+          # market sounding -> Park-PFI procurement/requirements/agreements -> retender learning loop.
+          HIRO_BASIC = 'https://www.city.hiroshima.lg.jp/business/kassei/1021746/1006056/1033078/1013124.html'
+          HIRO_COMMENT = 'https://www.city.hiroshima.lg.jp/tourism-culture/tourism/1021448/1006056/1026901/1037455/1037476.html'
+          HIRO_IMAGE = 'https://www.city.hiroshima.lg.jp/business/kassei/1021746/1006056/1026901/1033077/1017576.html'
+          HIRO_SOUND = 'https://www.city.hiroshima.lg.jp/business/kassei/1021746/1006056/1033079/1013129.html'
+          HIRO_PFI = 'https://www.city.hiroshima.lg.jp/business/kassei/1021746/1006056/1033079/1013132.html'
+          HIRO_RESOUND = 'https://www.city.hiroshima.lg.jp/business/kassei/1021746/1006056/1033079/1032607.html'
+          hiro = '04_广岛和平大道_线性公园ParkPFI与持续运营实验链条'
+          add(hiro, '01_和平大道利活用基本计划.pdf', lambda: find_pdf(HIRO_BASIC, ('平和大通りの利活用のための基本計画',)), 20)
+          add(hiro, '02_基本计划公众意见募集结果.pdf', lambda: find_pdf(HIRO_COMMENT, ('市民意見募集の結果について',)), 1)
+          add(hiro, '03_公众意见及广岛市回应.pdf', lambda: find_pdf(HIRO_COMMENT, ('御意見', '本市の考え方')), 3)
+          add(hiro, '04_详细整备图景_整备方向.pdf', lambda: find_pdf(HIRO_IMAGE, ('03', '整備の方向性')), 3)
+          add(hiro, '05_详细整备图景_分区方向.pdf', lambda: find_pdf(HIRO_IMAGE, ('04', 'ゾーンごとの整備の方向性')), 3)
+          add(hiro, '06_详细整备图景_整备内容.pdf', lambda: find_pdf(HIRO_IMAGE, ('05', '整備内容')), 3)
+          add(hiro, '07_详细整备图景_都心回游据点.pdf', lambda: find_pdf(HIRO_IMAGE, ('06', '都心回遊の拠点')), 3)
+          add(hiro, '08_详细整备图景_利活用及整备创意.pdf', lambda: find_pdf(HIRO_IMAGE, ('07', '利活用及び整備のアイデア')), 2)
+          add(hiro, '09_详细整备图景_用户画像及场景.pdf', lambda: find_pdf(HIRO_IMAGE, ('08', '利用者像と利用シーン')), 2)
+          add(hiro, '10_ParkPFI前期市场Sounding实施要领.pdf', lambda: find_pdf_any(HIRO_SOUND, (('実施要領',), ('サウンディング調査', '実施'))), 3)
+          add(hiro, '11_ParkPFI前期市场Sounding结果.pdf', lambda: find_pdf_any(HIRO_SOUND, (('調査結果',), ('実施結果',))), 2)
+          add(hiro, '12_ParkPFI公开征集设置指针.pdf', lambda: find_pdf(HIRO_PFI, ('公募設置等指針',), ('概要',)), 20)
+          add(hiro, '13_ParkPFI要求水准书.pdf', lambda: find_pdf(HIRO_PFI, ('要求水準書',)), 10)
+          add(hiro, '14_ParkPFI评价标准.pdf', lambda: find_pdf(HIRO_PFI, ('評価の基準',)), 3)
+          add(hiro, '15_ParkPFI基本协议书草案.pdf', lambda: find_pdf(HIRO_PFI, ('park-pfi', '基本協定書')), 5)
+          add(hiro, '16_ParkPFI问题回答.pdf', lambda: find_pdf(HIRO_PFI, ('質問への回答',)), 5)
+          add(hiro, '17_首次公开征集后再Sounding调查结果.pdf', lambda: find_pdf_any(HIRO_RESOUND, (('調査結果',), ('実施結果',), ('結果概要',))), 2)
+
+          def download_pdf(url: str, target: Path, min_pages: int) -> tuple[int, int, str]:
+              r = get(url, timeout=120)
+              data = r.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:250].decode('utf-8', errors='replace')
+                  raise RuntimeError(f'Not a PDF: {url}; type={r.headers.get("content-type")}; bytes={len(data)}; preview={preview!r}')
+              if len(data) < 10_000:
+                  raise RuntimeError(f'PDF too small: {url}; bytes={len(data)}')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < min_pages:
+                  raise RuntimeError(f'{target}: pages {pages} below expected minimum {min_pages}')
+              doc = pymupdf.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'{target}: page-count mismatch pypdf={pages}, pymupdf={doc.page_count}')
+              for idx in sorted(set([0, pages // 2, pages - 1])):
+                  pix = doc.load_page(idx).get_pixmap(matrix=pymupdf.Matrix(0.35, 0.35), alpha=False)
+                  if pix.width < 40 or pix.height < 40 or len(pix.samples) < 1000:
+                      raise RuntimeError(f'{target}: representative render failed page {idx + 1}')
+              doc.close()
+              digest = hashlib.sha256(data).hexdigest()
+              return pages, len(data), digest
+
+          seen_hashes: dict[str, str] = {}
+          stats: dict[str, dict[str, int]] = {}
+          for idx, (folder, filename, source, min_pages) in enumerate(entries, 1):
+              print(f'\n[{idx}/{len(entries)}] {folder}/{filename}', flush=True)
+              url = source() if callable(source) else source
+              print(f'  {url}', flush=True)
+              target = ROOT / folder / filename
+              pages, size, digest = download_pdf(url, target, min_pages)
+              if digest in seen_hashes:
+                  target.unlink(missing_ok=True)
+                  raise RuntimeError(f'Duplicate PDF content: {folder}/{filename} == {seen_hashes[digest]}')
+              seen_hashes[digest] = f'{folder}/{filename}'
+              stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+              stat['pdfs'] += 1
+              stat['pages'] += pages
+              stat['bytes'] += size
+              print(f'  accepted {pages} pages {size/1024/1024:.1f} MB sha256={digest[:16]}...', flush=True)
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if len(names) != len(entries):
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {len(entries)}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains non-PDF entry')
+              bad = zf.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          total_pdfs = sum(v['pdfs'] for v in stats.values())
+          total_pages = sum(v['pages'] for v in stats.values())
+          total_bytes = sum(v['bytes'] for v in stats.values())
+          print('\n=== BATCH 09 VERIFIED SUMMARY ===', flush=True)
+          for folder, v in stats.items():
+              print(f"{folder}: {v['pdfs']} PDFs, {v['pages']} pages, {v['bytes']/1024/1024:.1f} MB", flush=True)
+          print({
+              'sets': len(stats),
+              'pdfs': total_pdfs,
+              'pages': total_pages,
+              'source_mb': round(total_bytes / 1024 / 1024, 1),
+              'zip_mb': round(ZIP_PATH.stat().st_size / 1024 / 1024, 1),
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+          }, flush=True)
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch9-complete-project-chains
+          path: output/Rurban_OS_Japan_Batch09_4_Complete_Project_Chains.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
