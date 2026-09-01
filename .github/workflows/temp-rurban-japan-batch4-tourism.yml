@@ -1,0 +1,192 @@
+name: Temporary Rurban Japan Batch4 Tourism
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch4-tourism.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf
+
+      - name: Download and verify official PDFs
+        shell: python
+        run: |
+          import concurrent.futures
+          import hashlib
+          import json
+          import re
+          import time
+          import unicodedata
+          from pathlib import Path
+          from urllib.parse import urljoin
+
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+
+          plans = [
+            {"id":"T01","category":"01_目的地经营与文旅战略","name":"01_京都观光MICE振兴计划2030_本册.pdf","page":"https://www.city.kyoto.lg.jp/sankan/page/0000351851.html","targets":["本冊"],"exclude":["概要","英訳","資料集"],"min_pages":40},
+            {"id":"T02","category":"01_目的地经营与文旅战略","name":"02_京都观光MICE振兴计划2030_资料集.pdf","page":"https://www.city.kyoto.lg.jp/sankan/page/0000351851.html","targets":["資料集"],"min_pages":40},
+            {"id":"T03","category":"01_目的地经营与文旅战略","name":"03_京都市观光协会经营指针2030.pdf","page":"https://www.kyokanko.or.jp/about-kta/disclosure/","targets":["経営指針2030"],"min_pages":20},
+            {"id":"T04","category":"01_目的地经营与文旅战略","name":"04_京都市观光协会2025年度事业报告.pdf","page":"https://www.kyokanko.or.jp/about-kta/disclosure/","targets":["令和7年度","事業報告"],"exclude":["計画","予算"],"min_pages":35},
+            {"id":"T05","category":"01_目的地经营与文旅战略","name":"05_酒田市长期观光战略.pdf","url":"https://www.city.sakata.lg.jp/shisei/shisakukeikaku/chiikisouseibu/cyokikankosenryaku/index.files/sen.pdf","min_pages":40},
+            {"id":"T06","category":"01_目的地经营与文旅战略","name":"06_DMO自主财源开发方法指南.pdf","url":"https://www.nihon-kankou.or.jp/dmo/about/pdf/guidebook_dmo_development_method.pdf","min_pages":35},
+            {"id":"T07","category":"01_目的地经营与文旅战略","name":"07_京都观光综合调查2025_本册.pdf","page":"https://www.city.kyoto.lg.jp/sankan/page/0000354593.html","targets":["本冊"],"exclude":["概要"],"min_pages":70},
+            {"id":"T08","category":"01_目的地经营与文旅战略","name":"08_京都市民观光意识调查2025_详细报告.pdf","page":"https://www.city.kyoto.lg.jp/sankan/page/0000348402.html","targets":["詳細"],"exclude":["概要"],"min_pages":45},
+            {"id":"T09","category":"01_目的地经营与文旅战略","name":"09_观光DX知识集.pdf","page":"https://www.mlit.go.jp/kankocho/page06_00034.html","targets":["観光DXナレッジ集"],"min_pages":45},
+            {"id":"T10","category":"02_文旅产品与高附加值运营","name":"10_数字游民招徕知识集_2025.pdf","page":"https://www.mlit.go.jp/kankocho/jirei_shien/digitalnomad.html","targets":["令和7年度","ナレッジ集"],"min_pages":50},
+            {"id":"T11","category":"02_文旅产品与高附加值运营","name":"11_国际远程工作者调查报告.pdf","page":"https://www.mlit.go.jp/kankocho/jirei_shien/digitalnomad.html","targets":["国際的なリモートワーカー","調査報告書"],"min_pages":30},
+            {"id":"T12","category":"02_文旅产品与高附加值运营","name":"12_地方旅游内容与本地导游一体化提升报告_2025.pdf","page":"https://wwwtb.mlit.go.jp/kyushu/00001_00611.html","targets":["令和7年度","ローカルガイド"],"exclude":["概要"],"min_pages":50},
+            {"id":"T13","category":"02_文旅产品与高附加值运营","name":"13_离岛数字游民实证报告.pdf","page":"https://wwwtb.mlit.go.jp/kyushu/00001_00611.html","targets":["離島","デジタルノマド","報告書"],"min_pages":30},
+            {"id":"T14","category":"02_文旅产品与高附加值运营","name":"14_饮食与旅游联动_人吉球磨调查报告.pdf","page":"https://wwwtb.mlit.go.jp/kyushu/00001_00611.html","targets":["食","観光","人吉球磨","報告書"],"min_pages":50},
+            {"id":"T15","category":"02_文旅产品与高附加值运营","name":"15_北海道旅游EBPM调查报告.pdf","page":"https://www.hkd.meti.go.jp/hoksr/20230405/index.htm","targets":["報告書"],"exclude":["概要"],"min_pages":40},
+            {"id":"T16","category":"02_文旅产品与高附加值运营","name":"16_观光地与观光产业再生高附加值化优良案例集_2026.pdf","page":"https://www.mlit.go.jp/kankocho/topics12_00011.html","targets":["優良事例集"],"min_pages":60},
+            {"id":"T17","category":"02_文旅产品与高附加值运营","name":"17_可持续旅游地域营造优良案例集_2025.pdf","page":"https://www.mlit.go.jp/kankocho/jirei_shien/jizokukano_senshinjirei.html","targets":["2025年度","日本語版"],"min_pages":80},
+            {"id":"T18","category":"02_文旅产品与高附加值运营","name":"18_过度旅游防治与可持续地域营造案例集.pdf","page":"https://www.mlit.go.jp/kankocho/jirei_shien/overtourism.html","targets":["取組み事例集"],"exclude":["概要"],"min_pages":50},
+            {"id":"T19","category":"02_文旅产品与高附加值运营","name":"19_能登半岛地震观光再生支援实施报告.pdf","page":"https://www.mlit.go.jp/kankocho/topics06_00060.html","targets":["実施報告書"],"min_pages":20},
+            {"id":"T20","category":"03_艺术节与大型活动","name":"20_爱知国际艺术节2022举办报告.pdf","page":"https://www.aichitriennale.jp/archive/aichi-2022.html","targets":["開催報告書"],"min_pages":60},
+            {"id":"T21","category":"03_艺术节与大型活动","name":"21_爱知国际艺术节2022_PopUp记录集.pdf","page":"https://www.aichitriennale.jp/archive/aichi-2022.html","targets":["ポップ","記録集"],"min_pages":30},
+            {"id":"T22","category":"03_艺术节与大型活动","name":"22_奥能登国际艺术节2023总括报告.pdf","page":"https://www.city.suzu.lg.jp/soshiki/2/17412.html","targets":["奥能登国際芸術祭2023","総括報告書"],"min_pages":45},
+            {"id":"T23","category":"03_艺术节与大型活动","name":"23_札幌国际艺术节2024_新艺术节制作方法记录集.pdf","page":"https://siaf.jp/news/19281/","targets":["新しい芸術祭のつくり方","PDF"],"min_pages":120},
+            {"id":"T24","category":"03_艺术节与大型活动","name":"24_濑户内国际艺术节2025总括报告.pdf","page":"https://www.city.mitoyo.lg.jp/kakuka/seisaku/sangyo/1_1/setouchi-artfest/14799.html","targets":["瀬戸内国際芸術祭2025","総括報告書"],"exclude":["粟島"],"min_pages":35},
+            {"id":"T25","category":"03_艺术节与大型活动","name":"25_濑户内国际艺术节2025粟岛会场总括报告.pdf","page":"https://www.city.mitoyo.lg.jp/kakuka/seisaku/sangyo/1_1/setouchi-artfest/14799.html","targets":["粟島会場","総括報告書"],"min_pages":25},
+            {"id":"T26","category":"03_艺术节与大型活动","name":"26_大阪关西世博会2025基本计划.pdf","page":"https://www.expo2025.or.jp/overview/masterplan/","targets":["基本計画"],"exclude":["概要"],"min_pages":100},
+            {"id":"T27","category":"03_艺术节与大型活动","name":"27_叶山艺术节2025调查报告.pdf","page":"https://www.hayama-npo.or.jp/news/6568","targets":["調査報告書"],"min_pages":20},
+            {"id":"T28","category":"03_艺术节与大型活动","name":"28_文化艺术活动与地域活化实务调查报告.pdf","page":"https://www.bunka.go.jp/seisaku/bunka_gyosei/kibankyoka/chiiki_kasseika/","targets":["報告書"],"exclude":["概要"],"min_pages":40}
+          ]
+
+          HEADERS = {
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+          out = Path('output_tourism')
+          pdf_root = out / 'pdfs'
+          pdf_root.mkdir(parents=True, exist_ok=True)
+
+          def norm(s):
+            s = unicodedata.normalize('NFKC', s or '').lower()
+            return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』]+', '', s)
+
+          def get(session, url, **kwargs):
+            last = None
+            for attempt in range(4):
+              try:
+                r = session.get(url, headers=HEADERS, timeout=(25, 220), allow_redirects=True, **kwargs)
+                r.raise_for_status()
+                return r
+              except Exception as e:
+                last = e
+                time.sleep(2 + attempt * 3)
+            raise last
+
+          def resolve_link(plan, session):
+            if plan.get('url'):
+              return plan['url']
+            r = get(session, plan['page'])
+            soup = BeautifulSoup(r.content, 'html.parser')
+            candidates = []
+            targets = [norm(x) for x in plan.get('targets', [])]
+            excludes = [norm(x) for x in plan.get('exclude', [])]
+            for a in soup.find_all('a', href=True):
+              href = urljoin(r.url, a.get('href'))
+              text = ' '.join(a.stripped_strings)
+              blob = norm(text + ' ' + href)
+              if not href.lower().startswith(('http://','https://')):
+                continue
+              if any(x and x in blob for x in excludes):
+                continue
+              score = 0
+              for t in targets:
+                if t and t in blob:
+                  score += 30
+              if href.lower().split('?')[0].endswith('.pdf'):
+                score += 12
+              if 'pdf' in blob:
+                score += 4
+              if '概要' in text or 'gaiyou' in href.lower():
+                score -= 20
+              if score > 0:
+                candidates.append((score, len(text), href, text))
+            if not candidates:
+              raise RuntimeError('no matching PDF link on page')
+            candidates.sort(reverse=True)
+            return candidates[0][2]
+
+          def download_one(plan):
+            session = requests.Session()
+            rec = {**plan, 'status':'failed', 'resolved_url':'', 'pages':0, 'bytes':0, 'sha256':'', 'error':''}
+            target = pdf_root / plan['category'] / plan['name']
+            target.parent.mkdir(parents=True, exist_ok=True)
+            tmp = target.with_suffix('.part')
+            try:
+              url = resolve_link(plan, session)
+              rec['resolved_url'] = url
+              # Kyoto's site sometimes exposes a duplicated /page/cmsfiles path in HTML.
+              candidate_urls = [url]
+              if '/page/cmsfiles/' in url:
+                candidate_urls.append(url.replace('/page/cmsfiles/', '/cmsfiles/'))
+              last = None
+              for u in candidate_urls:
+                try:
+                  with get(session, u, stream=True) as r:
+                    ctype = (r.headers.get('content-type') or '').lower()
+                    with open(tmp, 'wb') as f:
+                      for chunk in r.iter_content(1024 * 1024):
+                        if chunk:
+                          f.write(chunk)
+                  url = u
+                  break
+                except Exception as e:
+                  last = e
+                  if tmp.exists(): tmp.unlink()
+              else:
+                raise last
+              size = tmp.stat().st_size
+              if size < 60_000:
+                raise RuntimeError(f'file too small: {size}')
+              with open(tmp, 'rb') as f:
+                head = f.read(8)
+              if not head.startswith(b'%PDF'):
+                raise RuntimeError(f'not a PDF: header={head!r}, content_type={ctype}')
+              reader = PdfReader(str(tmp), strict=False)
+              pages = len(reader.pages)
+              if pages < int(plan.get('min_pages', 15)):
+                raise RuntimeError(f'only {pages} pages; minimum {plan.get("min_pages")}')
+              sha = hashlib.sha256(tmp.read_bytes()).hexdigest()
+              tmp.replace(target)
+              rec.update(status='accepted', resolved_url=url, pages=pages, bytes=size, sha256=sha)
+              print(f"ACCEPT {plan['id']} {pages}p {size/1024/1024:.1f}MB {url}", flush=True)
+            except Exception as e:
+              if tmp.exists(): tmp.unlink()
+              rec['error'] = f'{type(e).__name__}: {e}'
+              print(f"FAIL {plan['id']} {rec['error']}", flush=True)
+            return rec
+
+          with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+            results = list(ex.map(download_one, plans))
+
+          accepted = [r for r in results if r['status'] == 'accepted']
+          with open(out / 'manifest.json', 'w', encoding='utf-8') as f:
+            json.dump({'attempted':len(results),'accepted':len(accepted),'results':results}, f, ensure_ascii=False, indent=2)
+          print(f"FINAL tourism accepted={len(accepted)}/{len(results)} pages={sum(r['pages'] for r in accepted)}", flush=True)
+          if len(accepted) < 10:
+            raise SystemExit('too few verified tourism/event PDFs')
+
+      - name: Upload verified files
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch4-tourism
+          path: output_tourism
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
