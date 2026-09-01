@@ -1,0 +1,320 @@
+name: Temporary Rurban Japan Batch10 Complete Project Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch10.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+
+      - name: Download, validate, render-check and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import hashlib
+          import html as htmlmod
+          import json
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          OUT = Path('output')
+          ROOT = OUT / 'Rurban_OS_日本高质量方案库_第10批_4套完整项目链'
+          ZIP_PATH = OUT / 'Rurban_OS_Japan_Batch10_4_Complete_Project_Chains.zip'
+          shutil.rmtree(ROOT, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          session = requests.Session()
+          retry = Retry(
+              total=5,
+              connect=5,
+              read=5,
+              backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              value = unicodedata.normalize('NFKC', htmlmod.unescape(value or '')).lower()
+              return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』<>:：,，.。]+', '', value)
+
+          def get(url: str, timeout: int = 120) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      response = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      response.raise_for_status()
+                      return response
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}', flush=True)
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          page_cache: dict[str, list[tuple[str, str]]] = {}
+
+          def page_links(page_url: str) -> list[tuple[str, str]]:
+              if page_url in page_cache:
+                  return page_cache[page_url]
+              response = get(page_url)
+              try:
+                  text = response.content.decode('utf-8')
+              except UnicodeDecodeError:
+                  text = response.content.decode(response.apparent_encoding or 'cp932', errors='replace')
+              soup = BeautifulSoup(text, 'html.parser')
+              found: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for anchor in soup.find_all('a', href=True):
+                  href = urljoin(response.url, anchor.get('href', '').strip())
+                  href = href.replace('/page/cmsfiles/', '/cmsfiles/')
+                  label = ' '.join(anchor.stripped_strings)
+                  if href and href not in seen:
+                      seen.add(href)
+                      found.append((label, href))
+              page_cache[page_url] = found
+              print(f'DISCOVER {page_url}: {len(found)} links', flush=True)
+              return found
+
+          def resolve_pdf(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = (), occurrence: int = 0) -> str:
+              required = tuple(norm(x) for x in include)
+              forbidden = tuple(norm(x) for x in exclude)
+              ranked = []
+              for label, href in page_links(page_url):
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in required):
+                      continue
+                  if any(x in blob for x in forbidden):
+                      continue
+                  if '.pdf' not in href.lower() and 'pdf' not in norm(label):
+                      continue
+                  score = 100 if '.pdf' in href.lower() else 0
+                  score += sum(30 for x in required if x in norm(label))
+                  if '概要版' in label:
+                      score -= 40
+                  ranked.append((score, label, href))
+              ranked.sort(reverse=True)
+              if len(ranked) <= occurrence:
+                  available = '\n'.join(f'    {label[:120]} -> {href}' for label, href in page_links(page_url) if '.pdf' in href.lower() or 'pdf' in norm(label))
+                  raise RuntimeError(f'No PDF matched include={include!r}, exclude={exclude!r}, occurrence={occurrence} on {page_url}\n{available}')
+              chosen = ranked[occurrence]
+              print(f'RESOLVE {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          entries: list[tuple[str, str, object, int]] = []
+
+          def add(folder: str, filename: str, source: object, min_pages: int = 1):
+              entries.append((folder, filename, source, min_pages))
+
+          # 01 Numazu: city-center strategy -> public-space reorganization -> design rules.
+          NUM_STRATEGY = 'https://www.city.numazu.shizuoka.jp/shisei/keikaku/various/machisenryaku/index.htm'
+          NUM_PUBLIC = 'https://city.numazu.shizuoka.jp/shisei/keikaku/various/machisenryaku/kukansaihen.htm'
+          NUM_DESIGN = 'https://www.city.numazu.shizuoka.jp/shisei/keikaku/various/machisenryaku/kukandesign.htm'
+          numazu = '01_沼津中心市街地_OPEN_NUMAZU公共空间再编与设计规则完整链条'
+          add(numazu, '01_中心市街地战略_第1章_战略定位.pdf', lambda: resolve_pdf(NUM_STRATEGY, ('第1章', '中心市街地まちづくり戦略とは')), 2)
+          add(numazu, '02_中心市街地战略_第2章_现状与课题.pdf', lambda: resolve_pdf(NUM_STRATEGY, ('第2章', '現状と課題')), 5)
+          add(numazu, '03_中心市街地战略_第3章_城市营造潮流与既有行动.pdf', lambda: resolve_pdf(NUM_STRATEGY, ('第3章', 'まちづくりの潮流と沼津市の取組')), 5)
+          add(numazu, '04_中心市街地战略_第4章_四大战略.pdf', lambda: resolve_pdf(NUM_STRATEGY, ('第4章', '4つの戦略')), 8)
+          add(numazu, '05_中心市街地战略_第5章_实现机制.pdf', lambda: resolve_pdf(NUM_STRATEGY, ('第5章', '実現に向けて')), 1)
+          add(numazu, '06_公共空间再编_第1章_计划定位.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第1章', '公共空間再編整備計画とは')), 3)
+          add(numazu, '07_公共空间再编_第2章_城市现状分析.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第2章', 'まちの現況分析')), 3)
+          add(numazu, '08_公共空间再编_第3章_城市营造情景.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第3章', 'まちづくりシナリオ')), 3)
+          add(numazu, '09_公共空间再编_第4章_再编计划1.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第4章', '公共空間の再編計画1')), 3)
+          add(numazu, '10_公共空间再编_第4章_再编计划2.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第4章', '公共空間の再編計画2')), 3)
+          add(numazu, '11_公共空间再编_第4章_再编计划3.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第4章', '公共空間の再編計画3')), 2)
+          add(numazu, '12_公共空间再编_第5章_后续推进.pdf', lambda: resolve_pdf(NUM_PUBLIC, ('第5章', '今後の取組の進め方')), 1)
+          add(numazu, '13_都市空间设计_第1章_指南定位.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第1章', '都市空間デザインガイドラインとは')), 2)
+          add(numazu, '14_都市空间设计_第2章_未来空间愿景.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第2章', '目指すべき将来の都市空間')), 2)
+          add(numazu, '15_都市空间设计_第3章_空间形成方针.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第3章', '都市空間形成方針')), 2)
+          add(numazu, '16_都市空间设计_第4章_空间类型指引1.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第4章', '空間タイプ別デザイン誘導指針1')), 3)
+          add(numazu, '17_都市空间设计_第4章_空间类型指引2.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第4章', '空間タイプ別デザイン誘導指針2')), 3)
+          add(numazu, '18_都市空间设计_第5章_实施路径.pdf', lambda: resolve_pdf(NUM_DESIGN, ('第5章', '実現に向けて')), 3)
+
+          # 02 Toyota: detailed spatial design -> use/management experiments -> center-city plan -> annual reviews -> regeneration plan/evaluation/new cycle.
+          TOYOTA_CENTER = 'https://www.city.toyota.aichi.jp/shisei/1073254/gyoseikeikaku/toshiseibi/1007548.html'
+          TOYOTA_URBAN = 'https://www.city.toyota.aichi.jp/shisei/1073254/gyoseikeikaku/toshiseibi/1073296/1032662.html'
+          toyota = '02_丰田都心_空间设计公共空间运营与年度评价完整闭环'
+          add(toyota, '01_都心未来DesignBook_设计篇01.pdf', 'https://www.city.toyota.aichi.jp/_res/projects/default_project/_page_/001/021/024/book02_01new.pdf', 5)
+          add(toyota, '02_都心未来DesignBook_设计篇02.pdf', 'https://www.city.toyota.aichi.jp/_res/projects/default_project/_page_/001/021/024/book02_02new.pdf', 5)
+          add(toyota, '03_都心未来DesignBook_设计篇03.pdf', 'https://www.city.toyota.aichi.jp/_res/projects/default_project/_page_/001/021/024/book02_03new.pdf', 5)
+          add(toyota, '04_都心未来DesignBook_过程与运营篇.pdf', 'https://www.city.toyota.aichi.jp/_res/projects/default_project/_page_/001/021/024/book03new.pdf', 10)
+          add(toyota, '05_第4期中心市街地活性化基本计划.pdf', lambda: resolve_pdf(TOYOTA_CENTER, ('第4期', '全体版')), 90)
+          add(toyota, '06_2023年度定期FollowUp报告.pdf', lambda: resolve_pdf(TOYOTA_CENTER, ('令和5年度', '定期フォローアップ')), 3)
+          add(toyota, '07_2024年度定期FollowUp报告.pdf', lambda: resolve_pdf(TOYOTA_CENTER, ('令和6年度', '定期フォローアップ')), 3)
+          add(toyota, '08_2025年度定期FollowUp报告.pdf', lambda: resolve_pdf(TOYOTA_CENTER, ('令和7年度', '定期フォローアップ')), 3)
+          add(toyota, '09_前周期都市再生整备计划_第6回变更.pdf', lambda: resolve_pdf(TOYOTA_URBAN, ('第6回変更',)), 3)
+          add(toyota, '10_前周期都市再生整备计划_事后评价.pdf', lambda: resolve_pdf(TOYOTA_URBAN, ('事後評価',)), 2)
+          add(toyota, '11_本周期都市再生整备计划_第4回变更.pdf', lambda: resolve_pdf(TOYOTA_URBAN, ('第4回変更',)), 10)
+
+          # 03 Fukuyama: long-term vision/survey -> design plan -> plaza policy/public response -> final plan/public response.
+          FUKU_VISION = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/114034.html'
+          FUKU_DESIGN = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/180971.html'
+          FUKU_POLICY = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/292460.html'
+          FUKU_POLICY_PC = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/292474.html'
+          FUKU_PLAN = 'https://www.city.fukuyama.hiroshima.jp/site/ekisyuuhensaisei/410252.html'
+          FUKU_PLAN_PC = 'https://www.city.fukuyama.hiroshima.jp/soshiki/ekisyuuhensaisei/399433.html'
+          fukuyama = '03_福山站前_再生愿景空间设计与站前广场合意形成完整链条'
+          add(fukuyama, '01_福山站前再生愿景_本篇.pdf', lambda: resolve_pdf(FUKU_VISION, ('福山駅前再生ビジョン', '本編')), 30)
+          add(fukuyama, '02_再生愿景_互联网调查结果.pdf', lambda: resolve_pdf(FUKU_VISION, ('インターネット調査結果',)), 10)
+          add(fukuyama, '03_福山站周边DesignPlan_2026.pdf', lambda: resolve_pdf(FUKU_DESIGN, ('福山駅周辺デザイン計画2026',)), 40)
+          add(fukuyama, '04_站前广场整备基本方针.pdf', lambda: resolve_pdf(FUKU_POLICY, ('福山駅前広場整備基本方針',)), 15)
+          add(fukuyama, '05_基本方针公众意见及政府回应.pdf', lambda: resolve_pdf(FUKU_POLICY_PC, ('パブリックコメント', '実施結果')), 1)
+          add(fukuyama, '06_站前广场整备基本计划_2026.pdf', lambda: resolve_pdf(FUKU_PLAN, ('福山駅前広場整備基本計画',)), 20)
+          add(fukuyama, '07_基本计划公众意见及政府回应.pdf', lambda: resolve_pdf(FUKU_PLAN_PC, ('パブリックコメント', '実施結果')), 1)
+
+          # 04 Okayama Haremachi: four social experiments/results -> permanent road-use rules -> post-renewal effect evaluation.
+          OKA_EXPERIMENT = 'https://www.city.okayama.jp/shisei/0000007402.html'
+          OKA_RULE = 'https://www.city.okayama.jp/shisei/0000067361.html'
+          OKA_EFFECT = 'https://www.city.okayama.jp/shisei/0000059488.html'
+          okayama = '04_冈山HareMachi通_道路再分配社会实验运营制度与成效评价完整链条'
+          add(okayama, '01_第1回社会实验_问卷调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第1回', 'アンケート調査結果')), 3)
+          add(okayama, '02_第1回社会实验_交通量调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第1回', '交通量調査結果')), 3)
+          add(okayama, '03_第2至3回社会实验_问卷调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第2回・第3回', 'アンケート調査結果')), 3)
+          add(okayama, '04_第2至3回社会实验_交通量调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第2回・第3回', '交通量調査結果')), 3)
+          add(okayama, '05_第4回社会实验_问卷调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第4回', 'アンケート調査結果')), 3)
+          add(okayama, '06_第4回社会实验_交通量调查结果.pdf', lambda: resolve_pdf(OKA_EXPERIMENT, ('第4回', '交通量調査結果')), 3)
+          add(okayama, '07_道路空间活用纲要.pdf', lambda: resolve_pdf(OKA_RULE, ('道路空間の活用に関する要綱',)), 2)
+          add(okayama, '08_道路空间活用区域图.pdf', lambda: resolve_pdf(OKA_RULE, ('別紙1', '道路空間の活用区域')), 1)
+          add(okayama, '09_道路空间活用条件.pdf', lambda: resolve_pdf(OKA_RULE, ('別紙2', '道路空間の活用条件')), 1)
+          add(okayama, '10_道路空间活用事务流程.pdf', lambda: resolve_pdf(OKA_RULE, ('事務処理フロー',)), 1)
+          add(okayama, '11_再整备后项目成效评价_2024.pdf', lambda: resolve_pdf(OKA_EFFECT, ('リニューアルした', 'ハレまち通り', '事業効果')), 3)
+
+          expected_counts = {
+              numazu: 18,
+              toyota: 11,
+              fukuyama: 7,
+              okayama: 11,
+          }
+          if len(entries) != sum(expected_counts.values()):
+              raise RuntimeError(f'Entry setup mismatch: {len(entries)}')
+
+          def download_pdf(url: str, target: Path, min_pages: int) -> tuple[int, int, str]:
+              response = get(url, timeout=240)
+              data = response.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:200].decode('utf-8', errors='replace')
+                  raise RuntimeError(f'Not PDF: {url}; final={response.url}; type={response.headers.get("content-type")}; preview={preview!r}')
+              if len(data) < 8_000:
+                  raise RuntimeError(f'PDF too small: {url}; {len(data)} bytes')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < min_pages:
+                  raise RuntimeError(f'{target}: pages {pages} below expected minimum {min_pages}')
+              doc = pymupdf.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'{target}: page-count mismatch pypdf={pages}, pymupdf={doc.page_count}')
+              for pageno in sorted(set([0, pages // 2, pages - 1])):
+                  pix = doc.load_page(pageno).get_pixmap(matrix=pymupdf.Matrix(0.30, 0.30), alpha=False)
+                  if pix.width < 35 or pix.height < 35 or len(pix.samples) < 1000:
+                      raise RuntimeError(f'{target}: representative render failed at page {pageno + 1}')
+              doc.close()
+              return pages, len(data), hashlib.sha256(data).hexdigest()
+
+          seen_hashes: dict[str, str] = {}
+          stats: dict[str, dict[str, int]] = {}
+          records = []
+
+          for index, (folder, filename, source, minimum) in enumerate(entries, 1):
+              print(f'\n[{index}/{len(entries)}] {folder}/{filename}', flush=True)
+              url = source() if callable(source) else source
+              print(f'  SOURCE {url}', flush=True)
+              target = ROOT / folder / filename
+              pages, size, digest = download_pdf(url, target, minimum)
+              relative = str(target.relative_to(ROOT))
+              if digest in seen_hashes:
+                  target.unlink(missing_ok=True)
+                  raise RuntimeError(f'Duplicate PDF content: {relative} == {seen_hashes[digest]}')
+              seen_hashes[digest] = relative
+              stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+              stat['pdfs'] += 1
+              stat['pages'] += pages
+              stat['bytes'] += size
+              records.append({'folder': folder, 'filename': filename, 'pages': pages, 'bytes': size, 'sha256': digest, 'source': url})
+              print(f'  ACCEPTED {pages} pages {size/1024/1024:.1f} MB sha256={digest[:16]}...', flush=True)
+
+          if set(stats) != set(expected_counts):
+              raise RuntimeError(f'Project folders mismatch: {set(stats)}')
+          for folder, expected in expected_counts.items():
+              if stats[folder]['pdfs'] != expected:
+                  raise RuntimeError(f'{folder}: {stats[folder]["pdfs"]} PDFs != expected {expected}')
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if len(names) != len(entries):
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {len(entries)}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains non-PDF entry')
+              bad = zf.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          summary = {
+              'batch': 10,
+              'sets': len(stats),
+              'pdfs': sum(v['pdfs'] for v in stats.values()),
+              'pages': sum(v['pages'] for v in stats.values()),
+              'source_bytes': sum(v['bytes'] for v in stats.values()),
+              'zip_bytes': ZIP_PATH.stat().st_size,
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+              'folders': stats,
+              'records': records,
+          }
+          (OUT / 'batch10_summary.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+          print('\n=== BATCH 10 VERIFIED SUMMARY ===', flush=True)
+          for folder, values in stats.items():
+              print(f"{folder}: {values['pdfs']} PDFs, {values['pages']} pages, {values['bytes']/1024/1024:.1f} MB", flush=True)
+          print(json.dumps({
+              'sets': summary['sets'],
+              'pdfs': summary['pdfs'],
+              'pages': summary['pages'],
+              'source_mb': round(summary['source_bytes']/1024/1024, 1),
+              'zip_mb': round(summary['zip_bytes']/1024/1024, 1),
+              'zip_sha256': summary['zip_sha256'],
+          }, ensure_ascii=False), flush=True)
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch10-complete-project-chains
+          path: |
+            output/Rurban_OS_Japan_Batch10_4_Complete_Project_Chains.zip
+            output/batch10_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
