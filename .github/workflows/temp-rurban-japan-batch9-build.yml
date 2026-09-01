@@ -1,0 +1,405 @@
+name: Temporary Build Rurban Japan Batch9
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch9-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      RELEASE_TAG: rurban-japan-batch9-temp-20260901
+      ZIP_NAME: Rurban_OS_Japan_Batch09_4_Complete_Project_Chains.zip
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+      - name: Discover, validate and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from collections import defaultdict
+          from pathlib import Path
+          from urllib.parse import parse_qs, quote, unquote, urljoin, urlparse
+          import hashlib
+          import html as htmlmod
+          import json
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          ROOT = Path('output/Rurban_OS_Japan_Batch09_4_Complete_Project_Chains')
+          TMP = Path('output/.batch09_tmp')
+          ZIP_PATH = Path('output/Rurban_OS_Japan_Batch09_4_Complete_Project_Chains.zip')
+          shutil.rmtree(ROOT, ignore_errors=True)
+          shutil.rmtree(TMP, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+          TMP.mkdir(parents=True, exist_ok=True)
+
+          retry = Retry(total=4, connect=4, read=4, backoff_factor=1.0,
+                        status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+                        allowed_methods=frozenset({'GET', 'HEAD'}))
+          S = requests.Session()
+          S.mount('https://', HTTPAdapter(max_retries=retry))
+          S.mount('http://', HTTPAdapter(max_retries=retry))
+          H = {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 '
+                            'Chrome/152.0 Safari/537.36',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          projects = [
+              {
+                  'folder': '01_姬路站北与大手前通_站前公共空间更新完整链条',
+                  'domains': ('city.himeji.lg.jp',),
+                  'project_terms': ('姫路', '大手前通り', '姫路駅'),
+                  'categories': [
+                      ('站前广场规划', '姫路駅北駅前広場 基本計画 PDF', ('姫路駅北', '駅前広場')),
+                      ('大手前通总体更新', '大手前通り 再整備 基本計画 PDF', ('大手前通り', '再整備')),
+                      ('空间设计规则', '大手前通り デザイン ガイドライン PDF', ('大手前通り', 'デザイン')),
+                      ('道路空间运营', '大手前通り 利活用 ガイドライン PDF', ('大手前通り', '利活用')),
+                      ('社会实验与验证', '大手前通り 社会実験 結果 PDF', ('大手前通り', '社会実験')),
+                      ('中心城区总体计划', '姫路市 中心市街地活性化 基本計画 PDF', ('中心市街地', '基本計画')),
+                      ('年度执行评价', '姫路市 中心市街地活性化 フォローアップ PDF', ('中心市街地', 'フォローアップ')),
+                      ('步行与交通组织', '姫路駅 周辺 交通戦略 歩行者 PDF', ('姫路駅', '交通')),
+                  ],
+              },
+              {
+                  'folder': '02_松山花园町通_道路再分配与街道运营完整链条',
+                  'domains': ('city.matsuyama.ehime.jp',),
+                  'project_terms': ('松山', '花園町通り', '花園町'),
+                  'categories': [
+                      ('街道更新总体方案', '松山市 花園町通り 空間改変 基本計画 PDF', ('花園町', '空間')),
+                      ('道路断面再分配', '松山市 花園町通り 道路空間 再配分 PDF', ('花園町', '道路')),
+                      ('社会实验', '松山市 花園町通り 社会実験 PDF', ('花園町', '社会実験')),
+                      ('公共空间利用规则', '松山市 花園町通り 利活用 ガイドライン PDF', ('花園町', '利活用')),
+                      ('中心城区总体计划', '松山市 中心市街地活性化 基本計画 PDF', ('中心市街地', '基本計画')),
+                      ('年度执行评价', '松山市 中心市街地活性化 フォローアップ PDF', ('中心市街地', 'フォローアップ')),
+                      ('城市交通战略', '松山市 都市交通戦略 PDF', ('松山市', '交通戦略')),
+                      ('步行城市政策', '松山市 歩いて暮らせる まちづくり PDF', ('松山市', '歩')),
+                  ],
+              },
+              {
+                  'folder': '03_福井站与中心市街地_再开发交通经营监测完整链条',
+                  'domains': ('city.fukui.lg.jp', 'pref.fukui.lg.jp'),
+                  'project_terms': ('福井', '福井駅', '中心市街地'),
+                  'categories': [
+                      ('中心城区总体计划', '福井市 中心市街地活性化 基本計画 PDF', ('福井市', '中心市街地', '基本計画')),
+                      ('年度执行评价', '福井市 中心市街地活性化 フォローアップ PDF', ('中心市街地', 'フォローアップ')),
+                      ('站区总体规划', '福井駅 周辺 まちづくり 基本計画 PDF', ('福井駅', 'まちづくり')),
+                      ('站前再开发', '福井駅前 再開発 基本計画 PDF', ('福井駅前', '再開発')),
+                      ('公共空间与街路', '福井駅前 公共空間 道路 利活用 PDF', ('福井駅', '公共空間')),
+                      ('都心交通战略', '福井市 都心地区 交通戦略 PDF', ('福井', '交通戦略')),
+                      ('县都总体设计', '県都グランドデザイン 福井 PDF', ('福井', 'グランドデザイン')),
+                      ('经营与客流监测', '福井市 中心市街地 通行量 調査 PDF', ('福井', '通行量')),
+                  ],
+              },
+              {
+                  'folder': '04_宇都宫LRT与站东口_交通导向开发完整链条',
+                  'domains': ('city.utsunomiya.lg.jp',),
+                  'project_terms': ('宇都宮', 'LRT', '駅東口'),
+                  'categories': [
+                      ('紧凑城市总体愿景', '宇都宮市 ネットワーク型コンパクトシティ 形成ビジョン PDF', ('宇都宮', 'コンパクトシティ')),
+                      ('综合交通战略', '宇都宮市 都市交通戦略 PDF', ('宇都宮', '交通戦略')),
+                      ('LRT基本方案', '宇都宮市 LRT 整備 基本計画 PDF', ('宇都宮', 'LRT', '基本')),
+                      ('LRT沿线街区营造', '宇都宮市 LRT 沿線 まちづくり PDF', ('宇都宮', 'LRT', '沿線')),
+                      ('站东口地区规划', '宇都宮駅東口 地区整備 基本計画 PDF', ('宇都宮駅東口', '整備')),
+                      ('公共空间与交通节点', '宇都宮駅東口 交流拠点 施設 計画 PDF', ('宇都宮駅東口', '交流拠点')),
+                      ('开业效果验证', '宇都宮市 LRT 開業 効果 検証 PDF', ('宇都宮', 'LRT', '効果')),
+                      ('客流与利用调查', '宇都宮市 LRT 利用者 調査 PDF', ('宇都宮', 'LRT', '調査')),
+                  ],
+              },
+          ]
+
+          def norm(s: str) -> str:
+              return re.sub(r'\s+', '', unicodedata.normalize('NFKC', htmlmod.unescape(s or ''))).lower()
+
+          def clean_url(u: str) -> str:
+              u = htmlmod.unescape(u).strip()
+              if 'duckduckgo.com/l/?' in u:
+                  q = parse_qs(urlparse(u).query)
+                  if q.get('uddg'):
+                      u = unquote(q['uddg'][0])
+              return u
+
+          def get(url: str, timeout=45):
+              r = S.get(url, headers=H, timeout=timeout, allow_redirects=True)
+              r.raise_for_status()
+              return r
+
+          def search(q: str) -> list[tuple[str, str]]:
+              urls: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              endpoints = [
+                  'https://html.duckduckgo.com/html/?q=' + quote(q),
+                  'https://www.google.com/search?num=20&q=' + quote(q),
+              ]
+              for endpoint in endpoints:
+                  try:
+                      r = get(endpoint, 60)
+                      soup = BeautifulSoup(r.content, 'html.parser')
+                      selectors = ['a.result__a', 'a[href]']
+                      for sel in selectors:
+                          for a in soup.select(sel):
+                              href = clean_url(a.get('href', ''))
+                              label = ' '.join(a.stripped_strings)
+                              if not href.startswith('http'):
+                                  continue
+                              host = urlparse(href).hostname or ''
+                              if host.endswith(('google.com', 'duckduckgo.com', 'gstatic.com')):
+                                  continue
+                              href = href.split('#', 1)[0]
+                              if href not in seen:
+                                  seen.add(href)
+                                  urls.append((label, href))
+                      if urls:
+                          break
+                  except Exception as exc:
+                      print('SEARCH_RETRY', q, endpoint, repr(exc))
+              print('SEARCH', q, '=>', len(urls), 'results')
+              return urls[:30]
+
+          page_cache: dict[str, list[tuple[str, str]]] = {}
+          def pdf_links_from_page(url: str) -> list[tuple[str, str]]:
+              if url in page_cache:
+                  return page_cache[url]
+              out: list[tuple[str, str]] = []
+              try:
+                  r = get(url, 60)
+                  ctype = r.headers.get('content-type', '').lower()
+                  if r.content[:5] == b'%PDF-':
+                      out.append(('', r.url))
+                  elif 'html' in ctype or b'<html' in r.content[:1000].lower():
+                      try:
+                          text = r.content.decode('utf-8')
+                      except UnicodeDecodeError:
+                          text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')
+                      soup = BeautifulSoup(text, 'html.parser')
+                      seen = set()
+                      for a in soup.find_all('a', href=True):
+                          href = urljoin(r.url, a.get('href', '').strip()).replace('/page/cmsfiles/', '/cmsfiles/')
+                          label = ' '.join(a.stripped_strings)
+                          blob = norm(label + ' ' + href)
+                          if '.pdf' in blob or 'pdf' in norm(label):
+                              if href not in seen:
+                                  seen.add(href)
+                                  out.append((label, href))
+                      raw = htmlmod.unescape(text).replace('\\/', '/')
+                      for href in re.findall(r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?', raw, flags=re.I):
+                          href = href.rstrip('\\,;)]}')
+                          if href not in seen:
+                              seen.add(href)
+                              out.append(('', href))
+              except Exception as exc:
+                  print('PAGE_FAIL', url, repr(exc))
+              page_cache[url] = out
+              return out
+
+          pdf_cache: dict[str, dict] = {}
+          def inspect_pdf(url: str) -> dict | None:
+              if url in pdf_cache:
+                  return pdf_cache[url]
+              try:
+                  r = get(url, 90)
+                  data = r.content
+                  if data[:5] != b'%PDF-':
+                      pdf_cache[url] = None
+                      return None
+                  digest = hashlib.sha256(data).hexdigest()
+                  path = TMP / f'{digest}.pdf'
+                  if not path.exists():
+                      path.write_bytes(data)
+                  reader = PdfReader(str(path), strict=False)
+                  pages = len(reader.pages)
+                  if pages < 1:
+                      raise RuntimeError('zero pages')
+                  texts = []
+                  for idx in range(min(4, pages)):
+                      try:
+                          texts.append(reader.pages[idx].extract_text() or '')
+                      except Exception:
+                          pass
+                  text = '\n'.join(texts)[:50000]
+                  doc = pymupdf.open(str(path))
+                  for idx in sorted(set([0, pages // 2, pages - 1])):
+                      pix = doc.load_page(idx).get_pixmap(matrix=pymupdf.Matrix(0.25, 0.25), alpha=False)
+                      if pix.width < 30 or pix.height < 30:
+                          raise RuntimeError('render too small')
+                  doc.close()
+                  info = {'url': r.url, 'path': path, 'sha256': digest, 'pages': pages,
+                          'bytes': len(data), 'text': text}
+                  pdf_cache[url] = info
+                  return info
+              except Exception as exc:
+                  print('PDF_FAIL', url, repr(exc))
+                  pdf_cache[url] = None
+                  return None
+
+          global_hashes: set[str] = set()
+          selected_by_project: dict[str, list[dict]] = defaultdict(list)
+
+          for project in projects:
+              folder = project['folder']
+              domains = project['domains']
+              project_candidates: dict[str, dict] = {}
+              print('\n\n### PROJECT', folder)
+              for category, query, keywords in project['categories']:
+                  site_q = '(' + ' OR '.join('site:' + d for d in domains) + ') ' + query
+                  results = search(site_q)
+                  ranked: list[tuple[float, dict, str, str]] = []
+                  for rank, (search_label, result_url) in enumerate(results):
+                      host = (urlparse(result_url).hostname or '').lower()
+                      if not any(host == d or host.endswith('.' + d) for d in domains):
+                          continue
+                      links = [(search_label, result_url)] if '.pdf' in result_url.lower() else pdf_links_from_page(result_url)
+                      for anchor, pdf_url in links:
+                          host2 = (urlparse(pdf_url).hostname or '').lower()
+                          if not any(host2 == d or host2.endswith('.' + d) for d in domains):
+                              continue
+                          info = inspect_pdf(pdf_url)
+                          if not info:
+                              continue
+                          blob = norm(search_label + ' ' + anchor + ' ' + pdf_url + ' ' + info['text'])
+                          kw_hits = sum(1 for kw in keywords if norm(kw) in blob)
+                          project_hits = sum(1 for kw in project['project_terms'] if norm(kw) in blob)
+                          if kw_hits == 0 or project_hits == 0:
+                              continue
+                          score = kw_hits * 60 + project_hits * 18 + max(0, 25-rank)
+                          if '概要' in blob and '本編' not in blob:
+                              score -= 10
+                          if '基本計画' in blob or 'ガイドライン' in blob or 'フォローアップ' in blob or '調査' in blob:
+                              score += 8
+                          ranked.append((score, info, anchor or search_label, result_url))
+                  ranked.sort(key=lambda x: (x[0], x[1]['pages'], x[1]['bytes']), reverse=True)
+                  chosen = None
+                  for score, info, label, page_url in ranked:
+                      if info['sha256'] in global_hashes:
+                          continue
+                      chosen = (score, info, label, page_url)
+                      break
+                  if chosen:
+                      score, info, label, page_url = chosen
+                      global_hashes.add(info['sha256'])
+                      rec = {**info, 'category': category, 'label': label, 'page_url': page_url, 'score': score}
+                      selected_by_project[folder].append(rec)
+                      print('SELECT', category, info['pages'], 'pages', info['url'])
+                  else:
+                      print('MISSING_CATEGORY', category, query)
+
+              # Supplement if fewer than 7 documents: broad official search, only documents with strong project terms.
+              if len(selected_by_project[folder]) < 7:
+                  broad_queries = [
+                      ' '.join(project['project_terms']) + ' PDF',
+                      project['project_terms'][0] + ' まちづくり 計画 ガイドライン 調査 PDF',
+                  ]
+                  supplements = []
+                  for bq in broad_queries:
+                      results = search('(' + ' OR '.join('site:' + d for d in domains) + ') ' + bq)
+                      for rank, (search_label, result_url) in enumerate(results):
+                          host = (urlparse(result_url).hostname or '').lower()
+                          if not any(host == d or host.endswith('.' + d) for d in domains):
+                              continue
+                          links = [(search_label, result_url)] if '.pdf' in result_url.lower() else pdf_links_from_page(result_url)
+                          for anchor, pdf_url in links:
+                              info = inspect_pdf(pdf_url)
+                              if not info or info['sha256'] in global_hashes:
+                                  continue
+                              blob = norm(search_label + ' ' + anchor + ' ' + pdf_url + ' ' + info['text'])
+                              hits = sum(1 for kw in project['project_terms'] if norm(kw) in blob)
+                              if hits < 2:
+                                  continue
+                              supplements.append((hits * 30 + max(0, 20-rank) + min(info['pages'], 30), info, anchor or search_label, result_url))
+                  supplements.sort(key=lambda x: (x[0], x[1]['pages']), reverse=True)
+                  for score, info, label, page_url in supplements:
+                      if len(selected_by_project[folder]) >= 8:
+                          break
+                      if info['sha256'] in global_hashes:
+                          continue
+                      global_hashes.add(info['sha256'])
+                      selected_by_project[folder].append({**info, 'category': '补充连续资料', 'label': label, 'page_url': page_url, 'score': score})
+                      print('SUPPLEMENT', info['pages'], 'pages', info['url'])
+
+              if len(selected_by_project[folder]) < 6:
+                  raise RuntimeError(f'{folder}: only {len(selected_by_project[folder])} valid official PDFs; minimum is 6')
+
+          # Copy with stable Chinese category-based filenames.
+          stats = {}
+          for folder, records in selected_by_project.items():
+              dest = ROOT / folder
+              dest.mkdir(parents=True, exist_ok=True)
+              used_names = set()
+              for i, rec in enumerate(records, 1):
+                  category = re.sub(r'[\\/:*?"<>|]+', '_', rec['category']).strip(' ._') or '资料'
+                  name = f'{i:02d}_{category}.pdf'
+                  n = 2
+                  while name in used_names:
+                      name = f'{i:02d}_{category}_{n}.pdf'; n += 1
+                  used_names.add(name)
+                  shutil.copy2(rec['path'], dest / name)
+              stats[folder] = {
+                  'pdfs': len(records),
+                  'pages': sum(r['pages'] for r in records),
+                  'bytes': sum(r['bytes'] for r in records),
+              }
+
+          # Verify package contains only unique PDFs.
+          hashes = {}
+          for pdf in sorted(ROOT.rglob('*')):
+              if not pdf.is_file() or pdf.suffix.lower() != '.pdf':
+                  raise RuntimeError(f'Non-PDF entry in package root: {pdf}')
+              data = pdf.read_bytes()
+              digest = hashlib.sha256(data).hexdigest()
+              if digest in hashes:
+                  raise RuntimeError(f'Duplicate content: {pdf} == {hashes[digest]}')
+              hashes[digest] = pdf
+              reader = PdfReader(str(pdf), strict=False)
+              if len(reader.pages) < 1:
+                  raise RuntimeError(f'Invalid page count: {pdf}')
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if any(not n.lower().endswith('.pdf') for n in names):
+                  raise RuntimeError('ZIP contains non-PDF entry')
+              if zf.testzip():
+                  raise RuntimeError('ZIP CRC failure')
+
+          print('\n=== BATCH09 SUMMARY ===')
+          for folder, st in stats.items():
+              print(folder, st['pdfs'], 'PDFs', st['pages'], 'pages', round(st['bytes']/1024/1024,1), 'MB')
+          print(json.dumps({
+              'sets': len(stats),
+              'pdfs': sum(v['pdfs'] for v in stats.values()),
+              'pages': sum(v['pages'] for v in stats.values()),
+              'source_mb': round(sum(v['bytes'] for v in stats.values())/1024/1024,1),
+              'zip_mb': round(ZIP_PATH.stat().st_size/1024/1024,1),
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+          }, ensure_ascii=False))
+      - name: Publish temporary release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
+          gh release create "$RELEASE_TAG" "output/$ZIP_NAME" \
+            --title "Temporary Rurban Japan Batch9" \
+            --notes "Temporary transfer asset; generated from official public PDFs only."
