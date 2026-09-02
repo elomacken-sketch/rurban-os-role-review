@@ -37,6 +37,10 @@ jobs:
                   "lambda: resolve_pdf(OMIYA_VISION, ('6.', '検討の経緯', '2'))",
                   "'https://www.city.saitama.lg.jp/001/010/015/004/001/003/p011083_d/fil/honpen6-2.pdf'",
               ),
+              (
+                  "lambda: resolve_pdf(OMIYA_CONCEPT, ('原文', '大宮駅グランドセントラルステーション化構想'))",
+                  "'https://www.city.saitama.lg.jp/001/010/015/004/007/001/001/p052328_d/fil/GCS_kousou.pdf'",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
