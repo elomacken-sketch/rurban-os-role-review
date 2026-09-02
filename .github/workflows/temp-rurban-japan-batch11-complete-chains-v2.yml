@@ -26,7 +26,7 @@ jobs:
 
           source = Path('.github/workflows/temp-rurban-japan-batch11-complete-chains.yml')
           data = yaml.safe_load(source.read_text(encoding='utf-8'))
-          script = data['jobs']['build']['steps'][1]['run']
+          script = data['jobs']['build']['steps'][2]['run']
 
           replacements = [
               (
