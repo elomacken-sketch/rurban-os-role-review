@@ -1,0 +1,314 @@
+name: Temporary Rurban Japan Batch13 Commercial Operation Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch13-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+      - name: Download, validate, render-check and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import hashlib
+          import html as htmlmod
+          import json
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          OUT = Path('output')
+          ROOT = OUT / 'Rurban_OS_日本高质量方案库_第13批_4套商业经营项目链'
+          ZIP_PATH = OUT / 'Rurban_OS_Japan_Batch13_4_Commercial_Operation_Project_Chains.zip'
+          SUMMARY_PATH = OUT / 'batch13_summary.json'
+          shutil.rmtree(ROOT, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          retry = Retry(
+              total=5, connect=5, read=5, backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session = requests.Session()
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              value = unicodedata.normalize('NFKC', htmlmod.unescape(value or '')).lower()
+              return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』<>:：,，.。]+', '', value)
+
+          def get(url: str, timeout: int = 180) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      r = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      r.raise_for_status()
+                      return r
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}', flush=True)
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          page_cache: dict[str, list[tuple[str, str]]] = {}
+
+          def page_links(page_url: str) -> list[tuple[str, str]]:
+              if page_url in page_cache:
+                  return page_cache[page_url]
+              r = get(page_url, 90)
+              try:
+                  text = r.content.decode('utf-8')
+              except UnicodeDecodeError:
+                  text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')
+              soup = BeautifulSoup(text, 'html.parser')
+              found: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for a in soup.find_all('a', href=True):
+                  href = urljoin(r.url, a.get('href', '').strip()).replace('/page/cmsfiles/', '/cmsfiles/')
+                  label = ' '.join(a.stripped_strings)
+                  if href and href not in seen:
+                      seen.add(href)
+                      found.append((label, href))
+              page_cache[page_url] = found
+              print(f'DISCOVER {page_url}: {len(found)} links', flush=True)
+              return found
+
+          def resolve_pdf(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = (), occurrence: int = 0) -> str:
+              inc = tuple(norm(x) for x in include)
+              exc = tuple(norm(x) for x in exclude)
+              ranked = []
+              for label, href in page_links(page_url):
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in inc):
+                      continue
+                  if any(x in blob for x in exc):
+                      continue
+                  score = 100 if '.pdf' in href.lower() else 0
+                  score += sum(30 for x in inc if x in norm(label))
+                  if '概要版' in label:
+                      score -= 30
+                  ranked.append((score, label, href))
+              ranked.sort(reverse=True)
+              if len(ranked) <= occurrence:
+                  available = '\n'.join(f'    {label[:120]} -> {href}' for label, href in page_links(page_url))
+                  raise RuntimeError(f'No link matched {include!r} excluding {exclude!r} occurrence={occurrence} on {page_url}\n{available}')
+              chosen = ranked[occurrence]
+              print(f'RESOLVE {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          entries: list[tuple[str, str, object]] = []
+          def add(folder: str, filename: str, source: object):
+              entries.append((folder, filename, source))
+
+          # 01 Toyosu Senkyaku Banrai: first solicitation/selection -> operator withdrawal and re-solicitation ->
+          # final operator selection -> interim activation -> completed commercial-tourism facility.
+          TOY_2013_REQ = 'https://www.spt.metro.tokyo.lg.jp/shijou/press/2013/0802_1825.html'
+          TOY_2015_REQ = 'https://www.spt.metro.tokyo.lg.jp/shijou/press/2015/0918_1874.html'
+          toy = '01_丰洲千客万来_市场型美食温泉文旅商业两轮招募与调整链条'
+          add(toy, '01_2013首次招募_募集要项概要.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('募集要項', '概要')))
+          add(toy, '02_2013首次招募_募集要项.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('千客万来施設事業募集要項',), ('概要', '添付', '契約', '審査', '様式')))
+          add(toy, '03_2013首次招募_附件资料.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('別紙1', '添付資料')))
+          add(toy, '04_2013首次招募_合同条件书.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('別紙2', '契約条件書')))
+          add(toy, '05_2013首次招募_审查标准.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('別紙3', '審査基準')))
+          add(toy, '06_2013首次招募_样式集.pdf', lambda: resolve_pdf(TOY_2013_REQ, ('別紙4', '様式集')))
+          add(toy, '07_2014首次中选_决定概要.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/25/image/senkyaku/gaiyou1.pdf')
+          add(toy, '08_2014首次中选_正式决定.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/25/image/senkyaku/kettei.pdf')
+          add(toy, '09_2015再次招募_募集要项要点.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918youkou_point.pdf')
+          add(toy, '10_2015再次招募_募集要项.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918youkou.pdf')
+          add(toy, '11_2015再次招募_附件资料.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918siryou.pdf')
+          add(toy, '12_2015再次招募_合同条件书.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918keiyaku.pdf')
+          add(toy, '13_2015再次招募_审查标准.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918sinnsa.pdf')
+          add(toy, '14_2015再次招募_样式集.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/270918yousiki.pdf')
+          add(toy, '15_2016最终中选_决定概要.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/0304_gaiyou_6.pdf')
+          add(toy, '16_2016最终中选_正式决定.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/27/image/senkyaku/0304_kettei_6.pdf')
+          add(toy, '17_2018临时活用_募集要项.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/press/30/5gaiku_youkou.pdf')
+          add(toy, '18_2018临时活用_合同条件书.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/press/30/5gaiku_keiyaku.pdf')
+          add(toy, '19_2018临时活用_审查标准.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/press/30/5gaiku_shinsa.pdf')
+          add(toy, '20_2019临时活用中选_决定概要.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/press/2019/0404-1.pdf')
+          add(toy, '21_2019临时活用中选_正式决定.pdf', 'https://www.spt.metro.tokyo.lg.jp/shijou/press/pdf/press/2019/0404-2.pdf')
+
+          # 02 Osaka Castle Park Management Organization: early implementation -> five-year operating reports ->
+          # external review -> current annual report and evaluation.
+          castle = '02_大阪城公园PMO_文化旅游商业活动长期运营与五年评价链条'
+          add(castle, '01_PMO事业初期推进情况.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000352/352848/72-1-1pmo.pdf')
+          add(castle, '02_PMO事业阶段推进与成果.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000352/352848/4th6siryoupmo.pdf')
+          add(castle, '03_近5年事业报告_上卷.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000649/649988/jigyouhoukokusyo1.pdf')
+          add(castle, '04_近5年事业报告_下卷.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000649/649988/jigyouhoukokusyo2.pdf')
+          add(castle, '05_五年评价结果.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000649/649988/hyoukakekka.pdf')
+          add(castle, '06_外部专家评价概要.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000649/649988/hyoukagaiyou.pdf')
+          add(castle, '07_2025年度管理运营事业报告.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000457/457892/R7oosakazyouh.pdf')
+          add(castle, '08_2025年度管理运营评价.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000457/457892/R7osakazyone.pdf')
+
+          # 03 Tenshiba + Tennoji Zoo: park-commercial activation -> current operating assessment ->
+          # institutional options, budget/revenue simulation, public comments and current corporation evaluation.
+          ten = '03_天王寺公园Tenshiba与动物园_商业入口运营组织收支改革及评价链条'
+          add(ten, '01_Tenshiba入口商业与管理运营事业推进.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000352/352848/72-3-1tennnoji.pdf')
+          add(ten, '02_Tenshiba当前实施状况与评价.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000669/669306/jissijyoukyouhyouka.pdf')
+          add(ten, '03_Tenshiba运营评价会议纪要.pdf', 'https://www.city.osaka.lg.jp/keizaisenryaku/cmsfiles/contents/0000669/669306/gijiyousi.pdf')
+          add(ten, '04_动物园经营现状与课题.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou1_genjoutokadai.pdf')
+          add(ten, '05_动物园101计划完整本.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/sankousiryou4_101keikaku.pdf')
+          add(ten, '06_直营组织与预算验证.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou2_sosikiyosanmenkaranokenshou.pdf')
+          add(ten, '07_可选经营组织形态.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou4_toriurukeieikeitai.pdf')
+          add(ten, '08_目标组织与运营体制.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou1_mezasubekisosikitaisei.pdf')
+          add(ten, '09_中长期收支模拟.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou2_shuusisimulation.pdf')
+          add(ten, '10_组织改革必要条件与评价案.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/siryou3_hituyoujoukentohyoukaan.pdf')
+          add(ten, '11_公众意见实施结果.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/sankousiryou3-1_pabukomejissikekka.pdf')
+          add(ten, '12_公众意见全文及回应.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/sankousiryou3-2_pabukomejissikekkabessi.pdf')
+          add(ten, '13_修订版收支模拟.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000375/375448/hosokusiryou_shuusisimulation.pdf')
+          add(ten, '14_2025年度事业自我评价.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000499/499594/R801_siryou1.pdf')
+          add(ten, '15_2025年度52项事业评价明细.pdf', 'https://www.city.osaka.lg.jp/kensetsu/cmsfiles/contents/0000499/499594/R801_siryou3.pdf')
+
+          # 04 Hiroshima Gate Park: long-term central-park policy -> expert and private feasibility review ->
+          # Park-PFI implementation -> event-use rules -> naming-rights revenue -> completed design assessment.
+          HIRO_PC = 'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1040197.html'
+          HIRO_RECOG = 'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1039101.html'
+          gate = '04_广岛GATE_PARK_ParkPFI商业活动运营命名权与实施链条'
+          add(gate, '01_中央公园活用中期报告.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104852.pdf')
+          add(gate, '02_旧市民球场跡地活用方策.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104853.pdf')
+          add(gate, '03_旧市民球场跡地空间营造图景.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104855.pdf')
+          add(gate, '04_纸屋町八丁堀地区街区营造Vision.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104858.pdf')
+          add(gate, '05_民间事业性与管理运营检讨情况.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104838.pdf')
+          add(gate, '06_有识者会议基本方针案.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/003/333/104836.pdf')
+          add(gate, '07_中央公园未来活用基本方针_最终版.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/040/143/hoshin.pdf')
+          add(gate, '08_基本方针公众意见及政府回应.pdf', lambda: resolve_pdf(HIRO_PC, ('別紙', '市民意見募集の結果')))
+          add(gate, '09_ParkPFI认定设施位置与期限.pdf', lambda: resolve_pdf(HIRO_RECOG, ('公募対象公園施設の場所',)))
+          add(gate, '10_基本设计完成时事业概要.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/017/928/175437.pdf')
+          add(gate, '11_活动广场使用概要与费用.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/010/920/26642.pdf')
+          add(gate, '12_公园内行为许可与活动规则.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/010/920/26644.pdf')
+          add(gate, '13_中央活动广场命名权募集要项.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/017/931/285199_513402_misc.pdf')
+          add(gate, '14_中央活动广场设施与经营概要.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/017/931/285199_513403_misc.pdf')
+          add(gate, '15_命名权招募问题及回答.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/017/931/182792.pdf')
+          add(gate, '16_SHIMINT_HIROSHIMA设计奖评价资料.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/031/286/256743.pdf')
+
+          expected = {toy: 21, castle: 8, ten: 15, gate: 16}
+          if len(entries) != sum(expected.values()):
+              raise RuntimeError(f'Entry setup mismatch: {len(entries)} vs {sum(expected.values())}')
+
+          def download_pdf(url: str, target: Path) -> tuple[int, int, str]:
+              r = get(url, 300)
+              data = r.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:250].decode('utf-8', errors='replace')
+                  raise RuntimeError(f'Not PDF: {url}; final={r.url}; type={r.headers.get("content-type")}; bytes={len(data)}; preview={preview!r}')
+              if len(data) < 5_000:
+                  raise RuntimeError(f'PDF too small: {url}; {len(data)} bytes')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < 1:
+                  raise RuntimeError(f'Invalid page count: {target}')
+              doc = pymupdf.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'Page-count mismatch: {target}: pypdf={pages}, pymupdf={doc.page_count}')
+              for pageno in sorted(set([0, pages // 2, pages - 1])):
+                  pix = doc.load_page(pageno).get_pixmap(matrix=pymupdf.Matrix(0.28, 0.28), alpha=False)
+                  if pix.width < 30 or pix.height < 30 or len(pix.samples) < 800:
+                      raise RuntimeError(f'Render validation failed: {target} page {pageno + 1}')
+              doc.close()
+              return pages, len(data), hashlib.sha256(data).hexdigest()
+
+          stats: dict[str, dict[str, int]] = {}
+          records = []
+          hashes: dict[str, str] = {}
+          for index, (folder, filename, source) in enumerate(entries, 1):
+              print(f'\n[{index}/{len(entries)}] {folder}/{filename}', flush=True)
+              url = source() if callable(source) else source
+              print(f'  SOURCE {url}', flush=True)
+              target = ROOT / folder / filename
+              pages, size, digest = download_pdf(url, target)
+              rel = str(target.relative_to(ROOT))
+              if digest in hashes:
+                  target.unlink(missing_ok=True)
+                  raise RuntimeError(f'Duplicate content: {rel} == {hashes[digest]}')
+              hashes[digest] = rel
+              stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+              stat['pdfs'] += 1
+              stat['pages'] += pages
+              stat['bytes'] += size
+              records.append({'folder': folder, 'filename': filename, 'pages': pages, 'bytes': size, 'sha256': digest, 'source': url})
+              print(f'  ACCEPTED {pages} pages {size/1024/1024:.1f} MiB sha256={digest[:16]}...', flush=True)
+
+          for folder, count in expected.items():
+              if stats.get(folder, {}).get('pdfs') != count:
+                  raise RuntimeError(f'{folder}: count mismatch {stats.get(folder)} expected={count}')
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if len(names) != len(entries):
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {len(entries)}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains non-PDF entry')
+              bad = zf.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          if ZIP_PATH.stat().st_size > 190 * 1024 * 1024:
+              raise RuntimeError(f'ZIP exceeds target download size: {ZIP_PATH.stat().st_size/1024/1024:.1f} MiB')
+
+          summary = {
+              'batch': 13,
+              'sets': len(stats),
+              'pdfs': sum(v['pdfs'] for v in stats.values()),
+              'pages': sum(v['pages'] for v in stats.values()),
+              'source_bytes': sum(v['bytes'] for v in stats.values()),
+              'zip_bytes': ZIP_PATH.stat().st_size,
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+              'folders': stats,
+              'records': records,
+          }
+          SUMMARY_PATH.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+          print('\n=== BATCH 13 VERIFIED SUMMARY ===', flush=True)
+          for folder, value in stats.items():
+              print(f"{folder}: {value['pdfs']} PDFs, {value['pages']} pages, {value['bytes']/1024/1024:.1f} MiB", flush=True)
+          print(json.dumps({
+              'sets': summary['sets'], 'pdfs': summary['pdfs'], 'pages': summary['pages'],
+              'source_mib': round(summary['source_bytes']/1024/1024, 1),
+              'zip_mib': round(summary['zip_bytes']/1024/1024, 1),
+              'zip_sha256': summary['zip_sha256'],
+          }, ensure_ascii=False), flush=True)
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch13-commercial-operation-chains
+          path: |
+            output/Rurban_OS_Japan_Batch13_4_Commercial_Operation_Project_Chains.zip
+            output/batch13_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
