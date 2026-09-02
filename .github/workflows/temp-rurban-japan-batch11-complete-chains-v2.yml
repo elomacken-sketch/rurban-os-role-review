@@ -54,8 +54,8 @@ jobs:
                   "add(maebashi, '19_市街地综合再生计划_实施计划书.pdf', 'https://www.city.maebashi.gunma.jp/material/files/group/62/zisshikeikakusyo.pdf', 20)\nadd(maebashi, '20_UrbanDesign式开放场地运营手册.pdf', lambda: resolve_pdf(MAE_OPEN, ('オープンサイト編', '冊子')), 15)",
               ),
               (
-                  "    maebashi: 19,",
-                  "    maebashi: 20,",
+                  "maebashi: 19",
+                  "maebashi: 20",
               ),
           ]
           for old, new in replacements:
