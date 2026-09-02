@@ -1,0 +1,73 @@
+name: Temporary Rurban Japan Batch11 Complete Project Chains V4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch11-complete-chains-v4.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf pyyaml
+
+      - name: Execute fully patched batch11 downloader
+        shell: python
+        run: |
+          from pathlib import Path
+          import yaml
+
+          source = Path('.github/workflows/temp-rurban-japan-batch11-complete-chains-v2.yml')
+          data = yaml.safe_load(source.read_text(encoding='utf-8'))
+          wrapper = data['jobs']['build']['steps'][2]['run']
+
+          old_exec = "exec(compile(script, '<batch11-v2>', 'exec'), {'__name__': '__main__'})"
+          extra_patch = '''extra_replacements = [
+              ("add(hiro, '05_整备图景_02工作坊过程.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('02', 'ワークショップの開催について')), 2)", "add(hiro, '05_整备图景_02工作坊过程.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('02', 'ワークショップの開催について')), 1)"),
+              ("add(hiro, '06_整备图景_03整备方向.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('03', '整備の方向性')), 2)", "add(hiro, '06_整备图景_03整备方向.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('03', '整備の方向性')), 1)"),
+              ("add(hiro, '07_整备图景_04分区方向.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('04', 'ゾーンごとの整備の方向性')), 2)", "add(hiro, '07_整备图景_04分区方向.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('04', 'ゾーンごとの整備の方向性')), 1)"),
+              ("add(hiro, '08_整备图景_05整备内容.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('05', '整備内容')), 2)", "add(hiro, '08_整备图景_05整备内容.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('05', '整備内容')), 1)"),
+              ("add(hiro, '09_整备图景_06都心回游据点.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('06', '都心回遊の拠点')), 2)", "add(hiro, '09_整备图景_06都心回游据点.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('06', '都心回遊の拠点')), 1)"),
+              ("add(hiro, '10_整备图景_07利活用及整备创意.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('07', '利活用及び整備のアイデア')), 2)", "add(hiro, '10_整备图景_07利活用及整备创意.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('07', '利活用及び整備のアイデア')), 1)"),
+              ("add(hiro, '11_整备图景_08用户画像及场景.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('08', '利用者像と利用シーン')), 2)", "add(hiro, '11_整备图景_08用户画像及场景.pdf', lambda: resolve_pdf(HIRO_IMAGE, ('08', '利用者像と利用シーン')), 1)"),
+              ("add(hiro, '14_ParkPFI公开征集设置指针.pdf', lambda: resolve_pdf(HIRO_PFI, ('公募設置等指針',), ('概要',)), 20)", "add(hiro, '14_ParkPFI公开征集设置指针.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244939.pdf', 40)"),
+              ("add(hiro, '15_ParkPFI要求水准书.pdf', lambda: resolve_pdf(HIRO_PFI, ('要求水準書',)), 10)", "add(hiro, '15_ParkPFI要求水准书.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244941.pdf', 40)"),
+              ("add(hiro, '16_ParkPFI评价标准.pdf', lambda: resolve_pdf(HIRO_PFI, ('評価の基準',)), 3)", "add(hiro, '16_ParkPFI评价标准.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244949.pdf', 7)"),
+              ("add(hiro, '17_ParkPFI基本协议书草案.pdf', lambda: resolve_pdf(HIRO_PFI, ('Park-PFI', '基本協定書')), 5)", "add(hiro, '17_ParkPFI基本协议书草案.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244950.pdf', 40)"),
+              ("add(hiro, '18_指定管理业务基本协议书草案.pdf', lambda: resolve_pdf(HIRO_PFI, ('指定管理業務', '基本協定書')), 5)", "add(hiro, '18_指定管理业务基本协议书草案.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244951.pdf', 20)"),
+              ("add(hiro, '19_特定公园设施整备转让合同草案.pdf', lambda: resolve_pdf(HIRO_PFI, ('特定公園施設', '整備', '譲渡契約')), 3)", "add(hiro, '19_特定公园设施整备转让合同草案.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244953.pdf', 5)"),
+              ("add(hiro, '20_过往活动举办实绩.pdf', lambda: resolve_pdf(HIRO_PFI, ('過年度のイベント等開催実績',)), 2)", "add(hiro, '20_过往活动举办实绩.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244947.pdf', 1)"),
+              ("add(hiro, '21_人员配置与会议出席者要求.pdf', lambda: resolve_pdf(HIRO_PFI, ('人員配置', '各種会議の出席者')), 2)", "add(hiro, '21_人员配置与会议出席者要求.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/244948.pdf', 2)"),
+              ("add(hiro, '22_ParkPFI问题回答.pdf', lambda: resolve_pdf(HIRO_PFI, ('質問への回答',)), 3)", "add(hiro, '22_ParkPFI问题回答.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/132/248930.pdf', 10)"),
+              ("add(hiro, '23_首次公开征集后再Sounding实施要领.pdf', lambda: resolve_pdf(HIRO_RESOUND, ('公募型サウンディング再調査実施要領',)), 3)", "add(hiro, '23_首次公开征集后再Sounding实施要领.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/032/607/256853.pdf', 3)"),
+              ("add(hiro, '24_首次公开征集后再Sounding结果.pdf', lambda: resolve_pdf(HIRO_RESOUND, ('サウンディング再調査の結果について',)), 2)", "add(hiro, '24_首次公开征集后再Sounding结果.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/032/607/kekka.pdf', 2)"),
+              ("add(hiro, '25_和平大道树木管理指针.pdf', lambda: resolve_pdf(HIRO_TREE, ('平和大通り樹木管理指針',)), 5)", "add(hiro, '25_和平大道树木管理指针.pdf', 'https://www.city.hiroshima.lg.jp/_res/projects/default_project/_page_/001/013/325/244307.pdf', 9)"),
+          ]
+          for old, new in extra_replacements:
+              if old not in script:
+                  raise SystemExit(f'Expected Hiroshima patch target not found: {old!r}')
+              script = script.replace(old, new, 1)
+
+          exec(compile(script, '<batch11-v4>', 'exec'), {'__name__': '__main__'})'''
+          if old_exec not in wrapper:
+              raise SystemExit('Expected batch11 v2 execution line not found')
+          wrapper = wrapper.replace(old_exec, extra_patch, 1)
+          exec(compile(wrapper, '<batch11-v4-wrapper>', 'exec'), {'__name__': '__main__'})
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch11-complete-project-chains-v4
+          path: |
+            output/Rurban_OS_Japan_Batch11_4_Complete_Project_Chains.zip
+            output/batch11_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
