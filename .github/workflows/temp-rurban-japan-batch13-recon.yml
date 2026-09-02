@@ -1,0 +1,79 @@
+name: Temporary Rurban Japan Batch13 Recon
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch13-recon.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4
+      - name: Inspect official pages and PDF links
+        shell: python
+        run: |
+          from urllib.parse import urljoin
+          import html
+          import re
+          import requests
+          from bs4 import BeautifulSoup
+
+          pages = {
+              'TOY_REQ':'https://www.spt.metro.tokyo.lg.jp/shijou/press/2015/0918_1874.html',
+              'TOY_SEL':'https://www.spt.metro.tokyo.lg.jp/shijou/press/2015/0304_2641.html',
+              'TOY_FIRST_SEL':'https://www.spt.metro.tokyo.lg.jp/shijou/press/2013/0219_1820.html',
+              'TOY_TEMP_REQ':'https://www.spt.metro.tokyo.lg.jp/shijou/press/2018/0125.html',
+              'TOY_TEMP_SEL':'https://www.spt.metro.tokyo.lg.jp/shijou/press/2019/0404.html',
+              'TOY_CURRENT':'https://www.shijou.metro.tokyo.lg.jp/info/0/torikumi/senkyaku_banrai',
+              'TOY_OPEN':'https://www.shijou.metro.tokyo.lg.jp/information/press/2023/01/2023012901',
+              'CASTLE_5Y':'https://www.city.osaka.lg.jp/keizaisenryaku/page/0000649988.html',
+              'CASTLE_ANNUAL':'https://www.city.osaka.lg.jp/kensetsu/page/0000457892.html',
+              'OSAKA_URBAN':'https://www.city.osaka.lg.jp/keizaisenryaku/page/0000352848.html',
+              'OSAKA_PPP':'https://www.city.osaka.lg.jp/shiseikaikakushitsu/page/0000604227.html',
+              'TEN_EVAL':'https://www.city.osaka.lg.jp/keizaisenryaku/page/0000669306.html',
+              'TEN_OVERVIEW':'https://www.city.osaka.lg.jp/keizaisenryaku/page/0000272693.html',
+              'TEN_FORM':'https://www.city.osaka.lg.jp/kensetsu/page/0000375448.html',
+              'TEN_LIA':'https://www.city.osaka.lg.jp/kensetsu/page/0000499594.html',
+              'HIRO_BASIC':'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1040143.html',
+              'HIRO_EXPERT':'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1003333.html',
+              'HIRO_PROGRESS':'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1017928.html',
+              'HIRO_EVENT':'https://www.city.hiroshima.lg.jp/living/park-green/1005983/1026354/1010920.html',
+              'HIRO_NAMING':'https://www.city.hiroshima.lg.jp/business/kassei/1021744/1017931.html',
+              'HIRO_AWARD':'https://www.city.hiroshima.lg.jp/business/toshikeikaku/1021732/1026851/1031286.html',
+          }
+          H={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36','Accept-Language':'ja,en;q=0.8'}
+          s=requests.Session()
+          for tag,url in pages.items():
+              print('\n\n===== '+tag+' '+url+' =====', flush=True)
+              try:
+                  r=s.get(url,headers=H,timeout=90,allow_redirects=True)
+                  print('STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'BYTES',len(r.content),flush=True)
+                  r.raise_for_status()
+                  text=r.content.decode('utf-8',errors='replace')
+                  soup=BeautifulSoup(text,'html.parser')
+                  title=soup.title.get_text(' ',strip=True) if soup.title else ''
+                  print('TITLE',title,flush=True)
+                  seen=set()
+                  count=0
+                  for a in soup.find_all('a',href=True):
+                      href=urljoin(r.url,a.get('href','').strip()).replace('/page/cmsfiles/','/cmsfiles/')
+                      label=' '.join(a.stripped_strings)
+                      parent=' '.join((a.find_parent(['tr','li','p','div']) or a).stripped_strings)
+                      blob=(label+' '+href+' '+parent).lower()
+                      if '.pdf' in blob or 'pdf' in label.lower() or any(k in blob for k in ('募集','公募','評価','報告書','事業概要','ガイドライン','計画','協定','審査','契約')):
+                          key=(label,href,parent[:300])
+                          if key in seen: continue
+                          seen.add(key); count+=1
+                          print('LINK',count,'LABEL=',repr(label),'PARENT=',repr(parent[:350]),'=>',href,flush=True)
+                  raw=html.unescape(text).replace('\\/','/').replace('\\u002F','/')
+                  for pdf in sorted(set(re.findall(r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?',raw,flags=re.I))):
+                      print('RAW_PDF',pdf[:1000],flush=True)
+              except Exception as exc:
+                  print('FAILED',tag,type(exc).__name__,repr(exc),flush=True)
