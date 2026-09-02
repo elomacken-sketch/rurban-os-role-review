@@ -1,0 +1,80 @@
+name: Temporary Rurban Japan Batch12 Commercial Tourism Chains V5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch12-v5.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf pyyaml
+      - name: Execute corrected batch12 downloader
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import yaml
+
+          source = Path('.github/workflows/temp-rurban-japan-batch12.yml')
+          data = yaml.safe_load(source.read_text(encoding='utf-8'))
+          script = data['jobs']['build']['steps'][2]['run']
+
+          old = "lambda:resolve_pdf(ONA_DOCS,('第13回','スライド'))"
+          new = "'https://www.town.onagawa.miyagi.jp/archive/pdf/h27_11_setumeikai13_shiryo.pdf'"
+          if old not in script:
+              raise SystemExit('Expected Onagawa source patch target not found')
+          script = script.replace(old, new, 1)
+
+          # These Nagasaki council records are complete official HTML records, not downloadable PDF originals.
+          # Exclude them from a package explicitly restricted to original PDFs.
+          removals = [
+              "add(nag,'08_观光MICE审议会_次期战略骨子资料.pdf',lambda:resolve_any(NAG_COUNCIL,(('次期長崎市観光','骨子'),('次期観光','骨子'))),3)\n",
+              "add(nag,'09_观光MICE审议会_2025年度主要观光预算资料.pdf',lambda:resolve_any(NAG_COUNCIL,(('令和7年度','観光関係事業','予算'),('令和7年度','予算説明'))),3)\n",
+              "add(nag,'10_观光MICE审议会_现状分析资料.pdf',lambda:resolve_any(NAG_COUNCIL,(('次期長崎市観光','現状分析'),('現状分析',))),20)\n",
+          ]
+          for item in removals:
+              if item not in script:
+                  raise SystemExit(f'Expected Nagasaki HTML-only item not found: {item!r}')
+              script = script.replace(item, '', 1)
+
+          renames = [
+              ("add(nag,'11_长崎站周边地区_都市再生整备计划.pdf'", "add(nag,'08_长崎站周边地区_都市再生整备计划.pdf'"),
+              ("add(nag,'12_长崎站周边地区_事后评价结果.pdf'", "add(nag,'09_长崎站周边地区_事后评价结果.pdf'"),
+              ("add(nag,'13_长崎站周边地区_FollowUp报告.pdf'", "add(nag,'10_长崎站周边地区_FollowUp报告.pdf'"),
+              ("add(nag,'14_长崎景观街区更新_完整事后评价.pdf'", "add(nag,'11_长崎景观街区更新_完整事后评价.pdf'"),
+              ("expected={ogal:8,onagawa:19,mm:15,nag:14}", "expected={ogal:8,onagawa:19,mm:15,nag:11}"),
+          ]
+          for old_name, new_name in renames:
+              if old_name not in script:
+                  raise SystemExit(f'Expected rename target not found: {old_name!r}')
+              script = script.replace(old_name, new_name, 1)
+
+          # Short agreements and evaluation sheets can be complete at 1-4 pages.
+          patched_lines = []
+          for line in script.splitlines():
+              stripped = line.lstrip()
+              if stripped.startswith('add(mm,') or stripped.startswith('add(nag,'):
+                  line = re.sub(r',\d+\)$', ',1)', line)
+              patched_lines.append(line)
+          script = '\n'.join(patched_lines)
+
+          exec(compile(script, '<batch12-v5>', 'exec'), {'__name__': '__main__'})
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch12-commercial-tourism-chains-v5
+          path: |
+            output/Rurban_OS_Japan_Batch12_4_Commercial_Tourism_Project_Chains.zip
+            output/batch12_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
