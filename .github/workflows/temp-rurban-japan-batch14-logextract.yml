@@ -1,0 +1,31 @@
+name: Temporary Extract Batch14 Failure Log
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-logextract.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract failure log
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p output
+          gh run view 33717714853 --repo elomacken-sketch/rurban-os-role-review --log-failed > output/batch14_failed.log
+          tail -n 120 output/batch14_failed.log
+      - name: Upload failure log
+        uses: actions/upload-artifact@v4
+        with:
+          name: batch14-failed-log
+          path: output/batch14_failed.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
