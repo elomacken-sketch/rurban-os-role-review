@@ -1,0 +1,31 @@
+name: Temporary Cleanup Rurban Japan Batch14
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-cleanup.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remove temporary release and workflow files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete rurban-japan-batch14-temp-20260903 --yes --cleanup-tag || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f \
+            .github/workflows/temp-rurban-japan-batch14-recon.yml \
+            .github/workflows/temp-rurban-japan-batch14-build.yml \
+            .github/workflows/temp-rurban-japan-batch14-cleanup.yml
+          git commit -m "cleanup: remove temporary Japan batch14 workflows"
+          git push origin main
