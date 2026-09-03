@@ -1,0 +1,71 @@
+name: Temporary Rurban Japan Batch14 Recon
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-recon.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4
+      - name: Inspect official pages and PDF links
+        shell: python
+        run: |
+          from urllib.parse import urljoin
+          import html
+          import re
+          import requests
+          from bs4 import BeautifulSoup
+
+          pages = {
+              'MORI_FIN':'https://morioka-buscenter.jp/wp/overview/',
+              'MORI_OLD_CITY':'https://www.city.morioka.iwate.jp/shisei/toshiseibi/1019970/1029010.html',
+              'COM_MAIN_OLD':'https://www.city.kitakyushu.lg.jp/contents/08100000.html',
+              'COM_MAIN_NEW':'https://www.city.kitakyushu.lg.jp/contents/11500035.html',
+              'COM_YOUTH':'https://www.city.kitakyushu.lg.jp/contents/11901296_00001.html',
+              'HOTA_OP':'https://www.town.kyonan.chiba.jp/soshiki/10/7795.html',
+              'HOTA_PLAY':'https://www.town.kyonan.chiba.jp/soshiki/10/0012251.html',
+              'HOTA_2021_ARTICLE':'https://www.town.kyonan.chiba.jp/soshiki/6/0006738.html',
+              'HOTA_2023_09':'https://www.town.kyonan.chiba.jp/site/tyouhou/9600.html',
+              'HOTA_2023_10':'https://www.town.kyonan.chiba.jp/site/tyouhou/9610.html',
+              'HOTA_2025_03':'https://www.town.kyonan.chiba.jp/site/tyouhou/0011843.html',
+              'AUGA_COMMITTEE':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007252/1007263/1007306.html',
+              'AUGA_KADARU':'https://www.city.aomori.aomori.jp/gikai/kouhou_kouchou/1007313/1007316/1007326.html',
+              'AUGA_2017_SESSION':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007129/1007172/1007176.html',
+              'AUGA_2015_BUDGET':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007129/1007186/1007188.html',
+          }
+          H={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36','Accept-Language':'ja,en;q=0.8'}
+          s=requests.Session()
+          for tag,url in pages.items():
+              print('\n\n===== '+tag+' '+url+' =====', flush=True)
+              try:
+                  r=s.get(url,headers=H,timeout=90,allow_redirects=True)
+                  print('STATUS',r.status_code,'FINAL',r.url,'TYPE',r.headers.get('content-type'),'BYTES',len(r.content),flush=True)
+                  r.raise_for_status()
+                  text=r.content.decode('utf-8',errors='replace')
+                  soup=BeautifulSoup(text,'html.parser')
+                  print('TITLE',soup.title.get_text(' ',strip=True) if soup.title else '',flush=True)
+                  seen=set(); count=0
+                  for a in soup.find_all('a',href=True):
+                      href=urljoin(r.url,a.get('href','').strip()).replace('/page/cmsfiles/','/cmsfiles/')
+                      label=' '.join(a.stripped_strings)
+                      parent=' '.join((a.find_parent(['tr','li','p','div']) or a).stripped_strings)
+                      blob=(label+' '+href+' '+parent).lower()
+                      if '.pdf' in blob or 'pdf' in label.lower() or any(k in blob for k in ('報告書','募集要項','評価','決算','貸借対照表','損益計算書','注記表','計画','アウガ')):
+                          key=(label,href,parent[:300])
+                          if key in seen: continue
+                          seen.add(key); count += 1
+                          print('LINK',count,'LABEL=',repr(label),'PARENT=',repr(parent[:350]),'=>',href,flush=True)
+                  raw=html.unescape(text).replace('\\/','/').replace('\\u002F','/')
+                  for pdf in sorted(set(re.findall(r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?',raw,flags=re.I))):
+                      print('RAW_PDF',pdf[:1200],flush=True)
+              except Exception as exc:
+                  print('FAILED',tag,type(exc).__name__,repr(exc),flush=True)
