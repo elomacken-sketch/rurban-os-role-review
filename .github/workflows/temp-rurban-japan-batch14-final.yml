@@ -1,0 +1,32 @@
+name: Temporary Rurban Japan Batch14 Final Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-final.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      RELEASE_TAG: rurban-japan-batch14-final-20260903
+      ZIP_NAME: Rurban_OS_Japan_Batch14_4_Commercial_Operation_Recovery_Chains.zip
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf pyyaml
+      - name: Build verified PDF-only package
+        run: python temp_batch14_runner.py
+      - name: Publish temporary release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
+          gh release create "$RELEASE_TAG" "output/$ZIP_NAME" "output/batch14_summary.json" \
+            --title "Rurban OS Japan Batch14" \
+            --notes "Temporary transfer asset generated from verified official public PDF originals."
