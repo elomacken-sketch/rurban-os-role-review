@@ -1,0 +1,81 @@
+name: Temporary Rurban Japan Batch14 Recon2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-recon2.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4
+      - name: Export exact PDF links
+        shell: python
+        run: |
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import json
+          import requests
+          from bs4 import BeautifulSoup
+
+          pages = {
+              'MORI_KESSAN':'https://morioka-buscenter.jp/kessan/',
+              'MORI_TENANT':'https://morioka-buscenter.jp/news/%E3%83%86%E3%83%8A%E3%83%B3%E3%83%88%E5%87%BA%E5%BA%97%E8%80%85%E3%81%AE%E5%8B%9F%E9%9B%86/',
+              'COM_MAIN':'https://www.city.kitakyushu.lg.jp/contents/08100000.html',
+              'COM_YOUTH':'https://www.city.kitakyushu.lg.jp/contents/11901296_00001.html',
+              'COM_CHILD_R7':'https://www.city.kitakyushu.lg.jp/contents/11500035.html',
+              'HOTA_OP':'https://www.town.kyonan.chiba.jp/soshiki/10/7795.html',
+              'HOTA_PLAY':'https://www.town.kyonan.chiba.jp/soshiki/10/0012251.html',
+              'HOTA_2021_ARTICLE':'https://www.town.kyonan.chiba.jp/soshiki/6/0006738.html',
+              'HOTA_2023_09':'https://www.town.kyonan.chiba.jp/site/tyouhou/9600.html',
+              'HOTA_2023_10':'https://www.town.kyonan.chiba.jp/site/tyouhou/9610.html',
+              'HOTA_2025_03':'https://www.town.kyonan.chiba.jp/site/tyouhou/0011843.html',
+              'AUGA_COMMITTEE':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007252/1007263/1007306.html',
+              'AUGA_KADARU':'https://www.city.aomori.aomori.jp/gikai/kouhou_kouchou/1007313/1007316/1007326.html',
+              'AUGA_2017_SESSION':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007129/1007172/1007176.html',
+              'AUGA_2015_BUDGET':'https://www.city.aomori.aomori.jp/gikai/kakonogikaijoukyou/1007129/1007186/1007188.html',
+          }
+          headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36','Accept-Language':'ja,en;q=0.8'}
+          session=requests.Session()
+          out={}
+          for tag,url in pages.items():
+              rec={'page_url':url,'status':None,'final_url':None,'title':'','links':[],'error':''}
+              try:
+                  r=session.get(url,headers=headers,timeout=90,allow_redirects=True)
+                  rec['status']=r.status_code; rec['final_url']=r.url
+                  r.raise_for_status()
+                  try: text=r.content.decode('utf-8')
+                  except UnicodeDecodeError: text=r.content.decode(r.apparent_encoding or 'cp932',errors='replace')
+                  soup=BeautifulSoup(text,'html.parser')
+                  rec['title']=soup.title.get_text(' ',strip=True) if soup.title else ''
+                  seen=set()
+                  for a in soup.find_all('a',href=True):
+                      href=urljoin(r.url,a.get('href','').strip()).replace('/page/cmsfiles/','/cmsfiles/')
+                      label=' '.join(a.stripped_strings)
+                      parent=' '.join((a.find_parent(['tr','li','p','div']) or a).stripped_strings)
+                      if '.pdf' in href.lower() or 'pdf' in label.lower():
+                          if href in seen: continue
+                          seen.add(href)
+                          rec['links'].append({'label':label,'parent':parent[:500],'url':href})
+              except Exception as exc:
+                  rec['error']=f'{type(exc).__name__}: {exc}'
+              out[tag]=rec
+          Path('output').mkdir(exist_ok=True)
+          Path('output/batch14_recon.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          for tag,rec in out.items():
+              print(tag,rec['status'],len(rec['links']),rec['title'],rec['error'],flush=True)
+      - name: Upload recon inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch14-recon2
+          path: output/batch14_recon.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
