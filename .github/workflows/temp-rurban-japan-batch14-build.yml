@@ -1,0 +1,327 @@
+name: Temporary Rurban Japan Batch14 Commercial Operation and Recovery Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+
+      - name: Download validate render-check and package official PDFs
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import hashlib
+          import html as htmlmod
+          import json
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          OUT = Path('output')
+          ROOT = OUT / 'Rurban_OS_日本高质量方案库_第14批_4套商业经营成败项目链'
+          ZIP_PATH = OUT / 'Rurban_OS_Japan_Batch14_4_Commercial_Operation_Recovery_Chains.zip'
+          SUMMARY_PATH = OUT / 'batch14_summary.json'
+          shutil.rmtree(ROOT, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          retry = Retry(
+              total=5, connect=5, read=5, backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session = requests.Session()
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              value = unicodedata.normalize('NFKC', htmlmod.unescape(value or '')).lower()
+              return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』<>:：,，.。]+', '', value)
+
+          def get(url: str, timeout: int = 240) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      r = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      r.raise_for_status()
+                      return r
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}', flush=True)
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          page_cache: dict[str, list[tuple[str, str]]] = {}
+          def page_links(page_url: str) -> list[tuple[str, str]]:
+              if page_url in page_cache:
+                  return page_cache[page_url]
+              r = get(page_url, 120)
+              try:
+                  text = r.content.decode('utf-8')
+              except UnicodeDecodeError:
+                  text = r.content.decode(r.apparent_encoding or 'cp932', errors='replace')
+              soup = BeautifulSoup(text, 'html.parser')
+              links: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for a in soup.find_all('a', href=True):
+                  href = urljoin(r.url, a.get('href', '').strip()).replace('/page/cmsfiles/', '/cmsfiles/')
+                  label = ' '.join(a.stripped_strings)
+                  if href and href not in seen:
+                      seen.add(href)
+                      links.append((label, href))
+              page_cache[page_url] = links
+              print(f'DISCOVER {page_url}: {len(links)} links', flush=True)
+              return links
+
+          def resolve_pdf(page_url: str, include: tuple[str, ...], exclude: tuple[str, ...] = (), occurrence: int = 0) -> str:
+              inc = tuple(norm(x) for x in include)
+              exc = tuple(norm(x) for x in exclude)
+              ranked = []
+              for label, href in page_links(page_url):
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in inc):
+                      continue
+                  if any(x in blob for x in exc):
+                      continue
+                  if '.pdf' not in href.lower() and 'pdf' not in norm(label):
+                      continue
+                  score = 100 if '.pdf' in href.lower() else 0
+                  score += sum(40 for x in inc if x in norm(label))
+                  if '概要版' in label and not any('概要' in x for x in include):
+                      score -= 50
+                  ranked.append((score, label, href))
+              ranked.sort(reverse=True)
+              if len(ranked) <= occurrence:
+                  available = '\n'.join(f'    {label[:140]} -> {href}' for label, href in page_links(page_url))
+                  raise RuntimeError(f'No PDF matched include={include!r}, exclude={exclude!r}, occurrence={occurrence} on {page_url}\n{available}')
+              chosen = ranked[occurrence]
+              print(f'RESOLVE {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          entries: list[tuple[str, str, object]] = []
+          def add(folder: str, filename: str, source: object):
+              entries.append((folder, filename, source))
+
+          # 01 Morioka Bus Center: PPP feasibility -> tenant conditions and spatial drawings -> five consecutive fiscal periods.
+          mori = '01_盛冈巴士中心_PPP交通商业设施招商与连续财务链条'
+          add(mori, '01_PPP可行性调查报告_上卷.pdf', 'https://www.mlit.go.jp/sogoseisaku/kanminrenkei/content/001309730.pdf')
+          add(mori, '02_PPP可行性调查报告_下卷.pdf', 'https://www.mlit.go.jp/sogoseisaku/kanminrenkei/content/001309731.pdf')
+          add(mori, '03_商户入驻募集说明.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/01%E3%80%80%E3%83%86%E3%83%8A%E3%83%B3%E3%83%88%E4%BA%8B%E6%A5%AD%E8%80%85%E5%85%A5%E5%B1%85%E6%A1%88%E5%86%85.pdf')
+          add(mori, '04_一层Marche区平面图.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/02-%E3%80%90%E5%8C%BA%E7%94%BB1%E3%80%91-%E5%B9%B3%E9%9D%A2%E5%9B%B3%EF%BC%881%E9%9A%8E%E3%83%9E%E3%83%AB%E3%82%B7%E3%82%A7%EF%BC%89.pdf')
+          add(mori, '05_一层Marche区详细平面图.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/03-%E3%80%90%E5%8C%BA%E7%94%BB1%E3%80%91-%E5%B9%B3%E9%9D%A2%E8%A9%B3%E7%B4%B0%E5%9B%B3%EF%BC%881%E9%9A%8E%E3%83%9E%E3%83%AB%E3%82%B7%E3%82%A7%EF%BC%89.pdf')
+          add(mori, '06_二层FoodHall区平面图.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/04-%E3%80%90%E5%8C%BA%E7%94%BB2%E3%80%91-%E5%B9%B3%E9%9D%A2%E5%9B%B3%EF%BC%882%E9%9A%8E%E3%83%95%E3%83%BC%E3%83%89%E3%83%9B%E3%83%BC%E3%83%AB%EF%BC%89.pdf')
+          add(mori, '07_二层FoodHall区详细平面图.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/05-%E3%80%90%E5%8C%BA%E7%94%BB2%E3%80%91-%E5%B9%B3%E9%9D%A2%E8%A9%B3%E7%B4%B0%E5%9B%B3%EF%BC%882%E9%9A%8E%E3%83%95%E3%83%BC%E3%83%89%E3%83%9B%E3%83%BC%E3%83%AB%EF%BC%89.pdf')
+          add(mori, '08_二层FoodHall区展开图.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2024/03/06-%E3%80%90%E5%8C%BA%E7%94%BB2%E3%80%91-%E5%B1%95%E9%96%8B%E5%9B%B3%EF%BC%882%E9%9A%8E%E3%83%95%E3%83%BC%E3%83%89%E3%83%9B%E3%83%BC%E3%83%AB%EF%BC%89.pdf')
+          for number, period, year in [(9,2,2021),(12,3,2022),(15,4,2023),(18,5,2024),(21,6,2025)]:
+              base = f'https://morioka-buscenter.jp/official/wp-content/uploads/{year+1}/06/'
+              add(mori, f'{number:02d}_第{period}期_资产负债表.pdf', base + f'{year}taishaku_taishou.pdf')
+              add(mori, f'{number+1:02d}_第{period}期_损益计算书.pdf', base + f'{year}soneki_keisan.pdf')
+              add(mori, f'{number+2:02d}_第{period}期_个别注记表.pdf', base + f'{year}kobetsu_cyuki.pdf')
+
+          # 02 COM CITY: failed station-front redevelopment -> public rescue/reuse plan -> current tenant/public-service management evaluation.
+          com = '02_北九州COM_CITY_失败商业综合体再生公共接管与运营评价链条'
+          com_files = [
+              ('01_COM_CITY再生计划.pdf','https://www.city.kitakyushu.lg.jp/files/000102386.pdf'),
+              ('02_COM_CITY再生计划_概要版.pdf','https://www.city.kitakyushu.lg.jp/files/000102387.pdf'),
+              ('03_市民意见与市政府回应.pdf','https://www.city.kitakyushu.lg.jp/files/000100262.pdf'),
+              ('04_再生检讨委员会设置要纲.pdf','https://www.city.kitakyushu.lg.jp/files/000083885.pdf'),
+              ('05_再生检讨委员会委员名册.pdf','https://www.city.kitakyushu.lg.jp/files/000083887.pdf'),
+              ('06_再生检讨委员会公开规则.pdf','https://www.city.kitakyushu.lg.jp/files/000083886.pdf'),
+              ('07_第1次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000083889.pdf'),
+              ('08_第2次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000084739.pdf'),
+              ('09_第3次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000085723.pdf'),
+              ('10_第4次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000087546.pdf'),
+              ('11_第5次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000091608.pdf'),
+              ('12_第6次再生检讨会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/000092717.pdf'),
+              ('13_再生检讨中期报告.pdf','https://www.city.kitakyushu.lg.jp/files/000087338.pdf'),
+              ('14_再生检讨中期报告_概要.pdf','https://www.city.kitakyushu.lg.jp/files/000087339.pdf'),
+              ('15_再生检讨最终报告.pdf','https://www.city.kitakyushu.lg.jp/files/000092719.pdf'),
+              ('16_再生检讨最终报告_概要.pdf','https://www.city.kitakyushu.lg.jp/files/000092718.pdf'),
+              ('17_YouthStation指定管理候选人选定结果.pdf','https://www.city.kitakyushu.lg.jp/files/001169980.pdf'),
+              ('18_YouthStation中选运营提案概要.pdf','https://www.city.kitakyushu.lg.jp/files/001169981.pdf'),
+              ('19_YouthStation运营方选定会议记录.pdf','https://www.city.kitakyushu.lg.jp/files/001169982.pdf'),
+              ('20_儿童馆2024年度运营评价.pdf','https://www.city.kitakyushu.lg.jp/files/001110081.pdf'),
+              ('21_儿童馆2025年度运营评价.pdf','https://www.city.kitakyushu.lg.jp/files/001226228.pdf'),
+              ('22_儿童馆2026年度运营评价.pdf','https://www.city.kitakyushu.lg.jp/files/001226229.pdf'),
+          ]
+          for filename, url in com_files:
+              add(com, filename, url)
+
+          # 03 Hota Elementary roadside station: operating plan/results -> expansion -> playground and new roof design procurement.
+          hota = '03_道之驿保田小学校_废校商业文旅持续经营扩建与设计招标链条'
+          hota_files = [
+              ('01_道之驿保田小学校_运营状况.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/7686.pdf'),
+              ('02_道之驿保田小学校_年度事业计划.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/7687.pdf'),
+              ('03_2023扩建前项目说明_町报9月号.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/5226.pdf'),
+              ('04_2023扩建设施开业_町报10月号.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/5294.pdf'),
+              ('05_2025设施经营与后续改善_町报3月号.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/6446.pdf'),
+              ('06_幼儿园区域游具工程_募集要项.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/6757.pdf'),
+              ('07_幼儿园区域游具工程_要求水准书.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/6758.pdf'),
+              ('08_幼儿园区域游具工程_提案评价标准.pdf','https://www.town.kyonan.chiba.jp/uploaded/attachment/6759.pdf'),
+          ]
+          for filename, url in hota_files:
+              add(hota, filename, url)
+          HOTA_ROOF = 'https://www.town.kyonan.chiba.jp/soshiki/10/0014161.html'
+          add(hota, '09_活动广场屋顶设计_募集要项.pdf', lambda: resolve_pdf(HOTA_ROOF, ('プロポーザル実施要項',)))
+          add(hota, '10_活动广场屋顶设计_业务仕様书.pdf', lambda: resolve_pdf(HOTA_ROOF, ('業務仕様書',)))
+          add(hota, '11_活动广场屋顶设计_提案评价标准.pdf', lambda: resolve_pdf(HOTA_ROOF, ('提案書評価基準',)))
+          add(hota, '12_活动广场屋顶设计_施工位置图.pdf', lambda: resolve_pdf(HOTA_ROOF, ('施工位置図',)))
+
+          # 04 AUGA: weak commercial operations -> repeated public intervention -> investigation -> liquidation/public conversion.
+          auga = '04_青森AUGA_站前商业综合体经营失败清算与公共转用调查链条'
+          auga_files = [
+              ('01_2015预算特别委员会委员长报告.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/188/s116-27817.pdf'),
+              ('02_2015预算特别委员会议案资料.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/188/826.pdf'),
+              ('03_2015预算特别委员会审查记录.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/188/aomori-s116-270817.pdf'),
+              ('04_AUGA问题调查特别委员会_初期报告.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/ch4-29.4.17.pdf'),
+              ('05_AUGA问题调查_第1次参考人听证.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/k1-29.5.21.pdf'),
+              ('06_AUGA问题调查_第2次参考人听证.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/k2-29.6.19.pdf'),
+              ('07_AUGA问题调查_中期报告.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/ch5-29.6.28.pdf'),
+              ('08_AUGA问题调查_第3次参考人听证.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/k3-29.10.18.pdf'),
+              ('09_AUGA问题调查_第4次参考人听证.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/k4-29.11.8.pdf'),
+              ('10_AUGA问题调查_第5次参考人听证.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/k5-29.11.16.pdf'),
+              ('11_AUGA问题调查_最终报告概要.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/gaiyou-30.2.9.pdf'),
+              ('12_AUGA问题调查_最终报告完整本.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/augahoukokusyo.pdf'),
+              ('13_2018特别委员会委员长最终报告.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/306/s182-30.2.26.pdf'),
+              ('14_2017市议会临时会委员长报告.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/176/s150-29.8.18.pdf'),
+              ('15_2017清算相关议案83.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/176/gian83.pdf'),
+              ('16_2017清算相关议案84.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/176/gian84.pdf'),
+              ('17_2017临时会审议概要.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/176/gaiyou29-3.pdf'),
+              ('18_AUGA后续活用市民对话资料.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/326/augarikatu.pdf'),
+              ('19_AUGA后续活用市民意见别册.pdf','https://www.city.aomori.aomori.jp/_res/projects/default_project/_page_/001/007/326/augabetten.pdf'),
+          ]
+          for filename, url in auga_files:
+              add(auga, filename, url)
+
+          expected = {mori: 23, com: 22, hota: 12, auga: 19}
+          if len(entries) != sum(expected.values()):
+              raise RuntimeError(f'Entry setup mismatch: {len(entries)} vs {sum(expected.values())}')
+
+          def download_pdf(url: str, target: Path) -> tuple[int, int, str]:
+              r = get(url, 360)
+              data = r.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:250].decode('utf-8', errors='replace')
+                  raise RuntimeError(f'Not PDF: {url}; final={r.url}; type={r.headers.get("content-type")}; bytes={len(data)}; preview={preview!r}')
+              if len(data) < 2_000:
+                  raise RuntimeError(f'PDF too small: {url}; {len(data)} bytes')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < 1:
+                  raise RuntimeError(f'Invalid page count: {target}')
+              doc = pymupdf.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'Page-count mismatch: {target}: pypdf={pages}, pymupdf={doc.page_count}')
+              for pageno in sorted(set([0, pages // 2, pages - 1])):
+                  pix = doc.load_page(pageno).get_pixmap(matrix=pymupdf.Matrix(0.28, 0.28), alpha=False)
+                  if pix.width < 30 or pix.height < 30 or len(pix.samples) < 800:
+                      raise RuntimeError(f'Render validation failed: {target} page {pageno + 1}')
+              doc.close()
+              return pages, len(data), hashlib.sha256(data).hexdigest()
+
+          stats: dict[str, dict[str, int]] = {}
+          records = []
+          hashes: dict[str, str] = {}
+          for index, (folder, filename, source) in enumerate(entries, 1):
+              print(f'\n[{index}/{len(entries)}] {folder}/{filename}', flush=True)
+              url = source() if callable(source) else source
+              print(f'  SOURCE {url}', flush=True)
+              target = ROOT / folder / filename
+              pages, size, digest = download_pdf(url, target)
+              rel = str(target.relative_to(ROOT))
+              if digest in hashes:
+                  target.unlink(missing_ok=True)
+                  raise RuntimeError(f'Duplicate content: {rel} == {hashes[digest]}')
+              hashes[digest] = rel
+              stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+              stat['pdfs'] += 1
+              stat['pages'] += pages
+              stat['bytes'] += size
+              records.append({'folder': folder, 'filename': filename, 'pages': pages, 'bytes': size, 'sha256': digest, 'source': url})
+              print(f'  ACCEPTED {pages} pages {size/1024/1024:.1f} MiB sha256={digest[:16]}...', flush=True)
+
+          for folder, count in expected.items():
+              if stats.get(folder, {}).get('pdfs') != count:
+                  raise RuntimeError(f'{folder}: count mismatch {stats.get(folder)} expected={count}')
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  zf.write(pdf, pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(ZIP_PATH, 'r') as zf:
+              names = zf.namelist()
+              if len(names) != len(entries):
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {len(entries)}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains non-PDF entry')
+              bad = zf.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          if ZIP_PATH.stat().st_size > 180 * 1024 * 1024:
+              raise RuntimeError(f'ZIP exceeds target size: {ZIP_PATH.stat().st_size/1024/1024:.1f} MiB')
+
+          summary = {
+              'batch': 14,
+              'sets': len(stats),
+              'pdfs': sum(v['pdfs'] for v in stats.values()),
+              'pages': sum(v['pages'] for v in stats.values()),
+              'source_bytes': sum(v['bytes'] for v in stats.values()),
+              'zip_bytes': ZIP_PATH.stat().st_size,
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+              'folders': stats,
+              'records': records,
+          }
+          SUMMARY_PATH.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+          print('\n=== BATCH 14 VERIFIED SUMMARY ===', flush=True)
+          for folder, value in stats.items():
+              print(f"{folder}: {value['pdfs']} PDFs, {value['pages']} pages, {value['bytes']/1024/1024:.1f} MiB", flush=True)
+          print(json.dumps({
+              'sets': summary['sets'], 'pdfs': summary['pdfs'], 'pages': summary['pages'],
+              'source_mib': round(summary['source_bytes']/1024/1024, 1),
+              'zip_mib': round(summary['zip_bytes']/1024/1024, 1),
+              'zip_sha256': summary['zip_sha256'],
+          }, ensure_ascii=False), flush=True)
+
+      - name: Upload verified PDF-only package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch14-commercial-operation-recovery-chains
+          path: |
+            output/Rurban_OS_Japan_Batch14_4_Commercial_Operation_Recovery_Chains.zip
+            output/batch14_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
