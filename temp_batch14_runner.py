@@ -23,6 +23,7 @@ for old, new in source_replacements.items():
         raise SystemExit(f'Batch14 source patch target not found: {old}')
     script = script.replace(old, new, 1)
 
+# Replace generated financial paths with the exact URLs currently published by the operator.
 start_marker = "for number, period, year in [(9,2,2021),(12,3,2022),(15,4,2023),(18,5,2024),(21,6,2025)]:"
 end_marker = "\n\n# 02 COM CITY"
 start = script.find(start_marker)
@@ -49,7 +50,31 @@ replacement_lines = [
     "add(mori, '22_第6期_损益计算书.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2026/06/2025soneki_keisan.pdf')",
     "add(mori, '23_第6期_个别注记表.pdf', 'https://morioka-buscenter.jp/official/wp-content/uploads/2026/06/2025kobetsu_cyuki.pdf')",
 ]
-replacement = '\n'.join(replacement_lines)
-script = script[:start] + replacement + script[end:]
+script = script[:start] + '\n'.join(replacement_lines) + script[end:]
 
-exec(compile(script, '<batch14-v4>', 'exec'), {'__name__': '__main__'})
+# The latest Hota roof-design page was retired and no longer exposes its four official attachments.
+# Keep the eight still-verifiable operation, expansion and playground-procurement originals.
+retired_hota_markers = (
+    '09_活动广场屋顶设计_募集要项.pdf',
+    '10_活动广场屋顶设计_业务仕様书.pdf',
+    '11_活动广场屋顶设计_提案评价标准.pdf',
+    '12_活动广场屋顶设计_施工位置图.pdf',
+)
+kept_lines = []
+removed = 0
+for line in script.splitlines():
+    if any(marker in line for marker in retired_hota_markers):
+        removed += 1
+        continue
+    kept_lines.append(line)
+if removed != 4:
+    raise SystemExit(f'Expected to remove 4 retired Hota entries, removed {removed}')
+script = '\n'.join(kept_lines)
+
+old_expected = 'expected = {mori: 23, com: 22, hota: 12, auga: 19}'
+new_expected = 'expected = {mori: 23, com: 22, hota: 8, auga: 19}'
+if old_expected not in script:
+    raise SystemExit('Batch14 expected-count target not found')
+script = script.replace(old_expected, new_expected, 1)
+
+exec(compile(script, '<batch14-v5>', 'exec'), {'__name__': '__main__'})
