@@ -1,0 +1,394 @@
+name: Temporary Rurban Japan Batch14 Commercial Operations Chains
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/temp-rurban-japan-batch14.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare
+        run: python -m pip install --quiet requests beautifulsoup4 pypdf pymupdf
+
+      - name: Download validate and package official PDF originals
+        shell: python
+        run: |
+          from __future__ import annotations
+
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import hashlib
+          import html as htmlmod
+          import json
+          import re
+          import shutil
+          import time
+          import unicodedata
+          import zipfile
+
+          import pymupdf
+          import requests
+          from bs4 import BeautifulSoup
+          from pypdf import PdfReader
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+
+          OUT = Path('output')
+          ROOT = OUT / 'Rurban_OS_日本高质量方案库_第14批_4套商业经营项目链'
+          ZIP_PATH = OUT / 'Rurban_OS_Japan_Batch14_4_Commercial_Operations_Project_Chains.zip'
+          SUMMARY_PATH = OUT / 'batch14_summary.json'
+          shutil.rmtree(ROOT, ignore_errors=True)
+          ROOT.mkdir(parents=True, exist_ok=True)
+
+          session = requests.Session()
+          retry = Retry(
+              total=5,
+              connect=5,
+              read=5,
+              backoff_factor=1.2,
+              status_forcelist=(408, 425, 429, 500, 502, 503, 504),
+              allowed_methods=frozenset({'GET', 'HEAD'}),
+          )
+          session.mount('https://', HTTPAdapter(max_retries=retry))
+          session.mount('http://', HTTPAdapter(max_retries=retry))
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/152 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'ja,en-US;q=0.8,en;q=0.6',
+          }
+
+          def norm(value: str) -> str:
+              value = unicodedata.normalize('NFKC', htmlmod.unescape(value or '')).lower()
+              return re.sub(r'[\s\u3000\-‐‑–—_・/\\()（）\[\]【】「」『』<>:：,，.。]+', '', value)
+
+          def get(url: str, timeout: int = 180) -> requests.Response:
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      response = session.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+                      response.raise_for_status()
+                      return response
+                  except Exception as exc:
+                      last = exc
+                      print(f'  retry {attempt}/4 {url}: {type(exc).__name__}: {exc}', flush=True)
+                      time.sleep(min(2 ** attempt, 8))
+              raise RuntimeError(f'GET failed after retries: {url}: {last}')
+
+          page_cache: dict[str, list[tuple[str, str]]] = {}
+
+          def page_links(page_url: str) -> list[tuple[str, str]]:
+              if page_url in page_cache:
+                  return page_cache[page_url]
+              response = get(page_url, 120)
+              try:
+                  text = response.content.decode('utf-8')
+              except UnicodeDecodeError:
+                  text = response.content.decode(response.apparent_encoding or 'cp932', errors='replace')
+              soup = BeautifulSoup(text, 'html.parser')
+              links: list[tuple[str, str]] = []
+              seen: set[str] = set()
+              for anchor in soup.find_all('a', href=True):
+                  href = urljoin(response.url, anchor.get('href', '').strip())
+                  href = href.replace('/page/cmsfiles/', '/cmsfiles/')
+                  label = ' '.join(anchor.stripped_strings)
+                  if href and href not in seen:
+                      seen.add(href)
+                      links.append((label, href))
+              raw = htmlmod.unescape(text).replace('\\/', '/').replace('\\u002F', '/')
+              for href in re.findall(r'https?://[^\s"\'<>]+?\.pdf(?:\?[^\s"\'<>]*)?', raw, flags=re.I):
+                  href = href.rstrip('\\,;)]}')
+                  if href not in seen:
+                      seen.add(href)
+                      links.append(('', href))
+              page_cache[page_url] = links
+              print(f'DISCOVER {page_url}: {len(links)} links', flush=True)
+              return links
+
+          def resolve_pdf(
+              page_url: str,
+              include: tuple[str, ...],
+              exclude: tuple[str, ...] = (),
+              occurrence: int = 0,
+          ) -> str:
+              required = tuple(norm(x) for x in include)
+              forbidden = tuple(norm(x) for x in exclude)
+              ranked: list[tuple[int, str, str]] = []
+              for label, href in page_links(page_url):
+                  blob = norm(label + ' ' + href)
+                  if not all(x in blob for x in required):
+                      continue
+                  if any(x in blob for x in forbidden):
+                      continue
+                  if '.pdf' not in href.lower() and 'pdf' not in norm(label):
+                      continue
+                  score = 100 if '.pdf' in href.lower() else 0
+                  score += sum(35 for x in required if x in norm(label))
+                  if '概要版' in label and not any('概要' in x for x in include):
+                      score -= 50
+                  if 'docx' in label.lower() or 'xlsx' in label.lower():
+                      score -= 100
+                  ranked.append((score, label, href))
+              ranked.sort(reverse=True)
+              if len(ranked) <= occurrence:
+                  available = '\n'.join(
+                      f'    {label[:150]} -> {href}'
+                      for label, href in page_links(page_url)
+                      if '.pdf' in href.lower() or 'pdf' in norm(label)
+                  )
+                  raise RuntimeError(
+                      f'No PDF matched include={include!r}, exclude={exclude!r}, occurrence={occurrence} on {page_url}\n{available}'
+                  )
+              chosen = ranked[occurrence]
+              print(f'RESOLVE {include}: {chosen[1]} -> {chosen[2]}', flush=True)
+              return chosen[2]
+
+          entries: list[dict] = []
+
+          def add(folder: str, filename: str, source: object, min_pages: int = 1, optional: bool = False):
+              entries.append({
+                  'folder': folder,
+                  'filename': filename,
+                  'source': source,
+                  'min_pages': min_pages,
+                  'optional': optional,
+              })
+
+          # 01 Kobe Suma: public concept -> Park-PFI procurement/contract/risk -> selected scheme and design.
+          SUMA_BASIC = 'https://www.city.kobe.lg.jp/a64051/shise/kekaku/kezaikankokyoku/suma_renewal/kihontekinakangae.html'
+          SUMA_PROC = 'https://www.city.kobe.lg.jp/a64051/shise/kekaku/kezaikankokyoku/suma_renewal/index2.html'
+          suma = '01_神户须磨海滨公园与SeaWorld_ParkPFI商业文旅开发链条'
+          add(suma, '01_再整备基本思路.pdf', lambda: resolve_pdf(SUMA_BASIC, ('基本的な考え方',), ('ご意見',)), 8)
+          add(suma, '02_基本思路公众意见及神户市回应.pdf', lambda: resolve_pdf(SUMA_BASIC, ('ご意見の内容', '神戸市の考え方')), 3)
+          add(suma, '03_竞争性对话概要.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日公開', '対話の概要')), 2)
+          add(suma, '04_ParkPFI公募设置等指针_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '公募設置等指針'), ('別紙1',)), 25)
+          add(suma, '05_提供资料清单_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '提供資料一覧')), 2)
+          add(suma, '06_基本协议书草案_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '基本協定書')), 8)
+          add(suma, '07_备忘录草案_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '覚書')), 3)
+          add(suma, '08_风险分担表.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年5月15日更新', 'リスク分担表')), 2)
+          add(suma, '09_特定公园设施建设转让合同草案.pdf', lambda: resolve_pdf(SUMA_PROC, ('特定公園施設建設', '譲渡契約書')), 3)
+          add(suma, '10_公募设置等计划编制要领.pdf', lambda: resolve_pdf(SUMA_PROC, ('公募設置等計画', '作成要領')), 8)
+          add(suma, '11_公募问题回答_2019-05-22.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年5月22日公開', '質問回答書')), 5)
+          add(suma, '12_基本协议等问题回答_2019-05-28.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年5月28日公開', '質問回答書')), 3)
+          add(suma, '13_中选方案概要.pdf', lambda: resolve_pdf(SUMA_PROC, ('提案の概要',)), 3)
+          add(suma, '14_中选方案总平面配置图.pdf', lambda: resolve_pdf(SUMA_PROC, ('配置図',)), 1)
+          add(suma, '15_中选方案项目意象.pdf', lambda: resolve_pdf(SUMA_PROC, ('事業イメージ',)), 3)
+          add(suma, '16_评选委员会审查讲评.pdf', lambda: resolve_pdf(SUMA_PROC, ('選定委員会の講評',)), 2)
+          add(suma, '17_评选委员会附带意见.pdf', lambda: resolve_pdf(SUMA_PROC, ('主な付帯意見',)), 1)
+          add(suma, '18_优先谈判方决定会议纪要.pdf', lambda: resolve_pdf(SUMA_PROC, ('優先交渉権者決定', '議事要旨')), 3)
+
+          # 02 Osaka Nagai: long-term integrated park/commercial management procurement -> selected scheme -> 5-year review.
+          NAGAI_PROC = 'https://www.city.osaka.lg.jp/kensetsu/page/0000499245.html'
+          NAGAI_SEL = 'https://www.city.osaka.lg.jp/kensetsu/page/0000515951.html'
+          NAGAI_EVAL = 'https://www.city.osaka.lg.jp/kensetsu/page/0000674186.html'
+          nagai = '02_大阪长居公园_20年一体化商业运营与五年评价闭环'
+          add(nagai, '01_指定管理事业募集要项.pdf', lambda: resolve_pdf(NAGAI_PROC, ('長居公園指定管理事業者', '募集要項')), 20)
+          add(nagai, '02_魅力提升事业条件.pdf', lambda: resolve_pdf(NAGAI_PROC, ('別紙1', '魅力向上事業に関する事項')), 20)
+          add(nagai, '03_公私负担区分表.pdf', lambda: resolve_pdf(NAGAI_PROC, ('別紙2', '負担区分一覧表')), 3)
+          add(nagai, '04_20年管理运营基本协议书.pdf', lambda: resolve_pdf(NAGAI_PROC, ('別紙3', '管理運営業務基本協定書')), 15)
+          add(nagai, '05_公园基本平面图.pdf', lambda: resolve_pdf(NAGAI_PROC, ('資料Ⅰ', '長居公園基本平面図')), 1)
+          add(nagai, '06_公园设施完整清单.pdf', lambda: resolve_pdf(NAGAI_PROC, ('資料Ⅰ-1', '長居公園施設一覧表')), 10)
+          add(nagai, '07_一般园地管理运营要求.pdf', lambda: resolve_pdf(NAGAI_PROC, ('資料Ⅱ', '一般園地の管理運営に関する事項')), 8)
+          add(nagai, '08_园地停车场运营规格书.pdf', lambda: resolve_pdf(NAGAI_PROC, ('資料Ⅹ-1', '園地駐車場管理運営業務仕様書')), 10)
+          add(nagai, '09_各设施过去三年利用状况.pdf', lambda: resolve_pdf(NAGAI_PROC, ('参考資料1', '各施設の利用状況')), 2)
+          add(nagai, '10_前运营周期事业报告_2018.pdf', lambda: resolve_pdf(NAGAI_PROC, ('平成30年度', '事業報告書'), ('ユースホステル', 'プール')), 20)
+          add(nagai, '11_活动等公园使用费规则.pdf', lambda: resolve_pdf(NAGAI_PROC, ('参考資料7', 'イベント等催事', '公園使用料')), 2)
+          add(nagai, '12_第1回评选会议纪要.pdf', lambda: resolve_pdf(NAGAI_SEL, ('第1回', '選定会議', '議事要旨'), ('DOCX',)), 1)
+          add(nagai, '13_第2回评选会议纪要.pdf', lambda: resolve_pdf(NAGAI_SEL, ('第2回', '選定会議', '議事要旨'), ('DOCX',)), 2)
+          add(nagai, '14_第3回评选会议纪要.pdf', lambda: resolve_pdf(NAGAI_SEL, ('第3回', '選定会議', '議事要旨'), ('DOCX',)), 2)
+          add(nagai, '15_中选方案主要内容.pdf', lambda: resolve_pdf(NAGAI_SEL, ('主な提案内容',)), 3)
+          add(nagai, '16_运营五年评价结果_2026.pdf', lambda: resolve_pdf(NAGAI_EVAL, ('評価結果',), ('XLSX',)), 8)
+          add(nagai, '17_五年评价议会报告.pdf', lambda: resolve_pdf(NAGAI_EVAL, ('議会報告',), ('DOCX',)), 2)
+
+          # 03 Kumamoto Sakuramachi/Hanabata: concept/design -> construction and KPI evaluation -> current operating documents.
+          KUMA_CONCEPT = 'https://www.city.kumamoto.jp/kiji0032294/index.html'
+          KUMA_PLAN = 'https://www.city.kumamoto.jp/kiji0035862/index.html'
+          KUMA_URBAN = 'https://www.city.kumamoto.jp/kiji003853/index.html'
+          KUMA_CENTER = 'https://www.city.kumamoto.jp/kiji003806/index.html'
+          KUMA_DISASTER = 'https://www.city.kumamoto.jp/kiji00357522/index.html'
+          HANA_INFO = 'https://hanabatahiroba.jp/facility-information/'
+          HANA_DOC = 'https://hanabatahiroba.jp/use-the-facility/download/'
+          HANA_FREE = 'https://hanabatahiroba.jp/news/1264/'
+          hana = '03_熊本Sakuramachi与花畑广场_商业MICE公共空间运营链条'
+          add(hana, '01_街区营造Management基本构想_完整本.pdf', lambda: resolve_pdf(KUMA_CONCEPT, ('一括ダウンロード',)), 45)
+          add(hana, '02_街区营造Management基本计划_本篇.pdf', lambda: resolve_pdf(KUMA_PLAN, ('基本計画', '本編')), 35)
+          add(hana, '03_都市再生整备计划_桜町花畑地区.pdf', lambda: resolve_pdf(KUMA_URBAN, ('都市再生整備計画', '桜町', '花畑地区'), ('区域', '概要図', '事後評価')), 2)
+          add(hana, '04_都市再生项目事后评价.pdf', lambda: resolve_pdf(KUMA_URBAN, ('事後評価シート', '桜町', '花畑地区')), 5)
+          add(hana, '05_熊本中心市街地活性化基本计划_第6回变更全体版.pdf', lambda: resolve_pdf(KUMA_CENTER, ('基本計画書', '第6回変更')), 100)
+          add(hana, '06_街区区域防灾与归宅困难者计划_2024.pdf', lambda: resolve_pdf(KUMA_DISASTER, ('エリア防災計画', '2024年')), 15)
+          add(hana, '07_花畑广场设施与活动宣传册.pdf', lambda: resolve_pdf(HANA_INFO, ('花畑広場パンフレット',)), 2)
+          add(hana, '08_花畑广场使用手册.pdf', lambda: resolve_pdf(HANA_DOC, ('使用の手引',)), 10)
+          add(hana, '09_活动申报文件清单.pdf', lambda: resolve_pdf(HANA_DOC, ('提出書類一覧',)), 1)
+          add(hana, '10_活动附属设备清单.pdf', lambda: resolve_pdf(HANA_DOC, ('附属備品リスト',)), 2)
+          add(hana, '11_花畑广场整体与尺寸图.pdf', lambda: resolve_pdf(HANA_DOC, ('花畑広場', '全体図', '寸法入り')), 1)
+          add(hana, '12_市民免费文化使用机制_DayDream_InTheFlesh.pdf', lambda: resolve_pdf(HANA_FREE, ('資料', 'PDF')), 2)
+
+          # 04 Osaka Ogimachi: 20-year procurement, cost/risk/operations, baseline data and winning scheme.
+          OGI_PROC = 'https://www.city.osaka.lg.jp/kensetsu/page/0000555624.html'
+          OGI_SEL = 'https://www.city.osaka.lg.jp/kensetsu/page/0000583066.html'
+          ogi = '04_大阪扇町公园_20年商业活化招募运营规则与中选方案链条'
+          add(ogi, '01_指定管理事业募集要项.pdf', lambda: resolve_pdf(OGI_PROC, ('扇町公園指定管理事業者', '募集要項')), 20)
+          add(ogi, '02_指定管理业务基准.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙1', '指定管理等業務の基準')), 15)
+          add(ogi, '03_魅力提升事业条件与空间方案.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙2', '魅力向上事業に関する事項')), 20)
+          add(ogi, '04_年度管理代行费基准额.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙3', '業務代行料基準額')), 2)
+          add(ogi, '05_风险分担表.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙4', 'リスク分担一覧表')), 2)
+          add(ogi, '06_20年管理运营基本协议书.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙5', '管理運営業務基本協定書')), 15)
+          add(ogi, '07_年度协议书.pdf', lambda: resolve_pdf(OGI_PROC, ('別紙6', '管理運営業務年度協定書')), 5)
+          add(ogi, '08_公园基本平面图.pdf', lambda: resolve_pdf(OGI_PROC, ('資料Ⅰ', '扇町公園基本平面図')), 1)
+          add(ogi, '09_一般园地管理运营要求.pdf', lambda: resolve_pdf(OGI_PROC, ('資料Ⅱ', '一般園地の管理運営に関する事項')), 8)
+          add(ogi, '10_公园维护管理规格书.pdf', lambda: resolve_pdf(OGI_PROC, ('資料Ⅱ-1', '維持管理業務仕様書')), 8)
+          add(ogi, '11_活动行为许可审查标准.pdf', lambda: resolve_pdf(OGI_PROC, ('資料Ⅴ', '行為許可の審査基準')), 5)
+          add(ogi, '12_停车场管理运营规格书.pdf', lambda: resolve_pdf(OGI_PROC, ('資料Ⅵ', '駐車場管理運営業務仕様書')), 10)
+          add(ogi, '13_设施过去三年利用数据.pdf', lambda: resolve_pdf(OGI_PROC, ('参考資料1', '各施設の利用状況')), 1)
+          add(ogi, '14_前周期泳池运营事业报告.pdf', lambda: resolve_pdf(OGI_PROC, ('参考資料2', '事業報告書')), 10)
+          add(ogi, '15_活动催事公园使用费规则.pdf', lambda: resolve_pdf(OGI_PROC, ('参考資料5', 'イベント等催事', '公園使用料')), 2)
+          add(ogi, '16_活动支援与区域协作实绩.pdf', lambda: resolve_pdf(OGI_PROC, ('参考資料6', '活動支援', '連携促進')), 2)
+          add(ogi, '17_第1回评选会议纪要.pdf', lambda: resolve_pdf(OGI_SEL, ('第1回', '選定会議', '議事要旨'), ('DOCX',)), 1)
+          add(ogi, '18_第2回评选会议纪要.pdf', lambda: resolve_pdf(OGI_SEL, ('第2回', '選定会議', '議事要旨'), ('DOCX',)), 1)
+          add(ogi, '19_第3回评选会议纪要.pdf', lambda: resolve_pdf(OGI_SEL, ('第3回', '選定会議', '議事要旨'), ('DOCX',)), 1)
+          add(ogi, '20_中选方案主要内容.pdf', lambda: resolve_pdf(OGI_SEL, ('主な提案内容',)), 3)
+
+          minimum_per_folder = {
+              suma: 16,
+              nagai: 15,
+              hana: 10,
+              ogi: 18,
+          }
+
+          def download_pdf(url: str, target: Path, minimum: int) -> tuple[int, int, str]:
+              response = get(url, 300)
+              data = response.content
+              if data[:5] != b'%PDF-':
+                  preview = data[:240].decode('utf-8', errors='replace')
+                  raise RuntimeError(
+                      f'Not PDF: {url}; final={response.url}; type={response.headers.get("content-type")}; '
+                      f'bytes={len(data)}; preview={preview!r}'
+                  )
+              if len(data) < 8_000:
+                  raise RuntimeError(f'PDF too small: {url}; {len(data)} bytes')
+              target.parent.mkdir(parents=True, exist_ok=True)
+              target.write_bytes(data)
+              reader = PdfReader(str(target), strict=False)
+              pages = len(reader.pages)
+              if pages < minimum:
+                  raise RuntimeError(f'{target}: pages {pages} below expected minimum {minimum}')
+              doc = pymupdf.open(str(target))
+              if doc.page_count != pages:
+                  raise RuntimeError(f'{target}: page count mismatch pypdf={pages}, pymupdf={doc.page_count}')
+              for page_no in sorted(set([0, pages // 2, pages - 1])):
+                  pix = doc.load_page(page_no).get_pixmap(matrix=pymupdf.Matrix(0.30, 0.30), alpha=False)
+                  if pix.width < 35 or pix.height < 35 or len(pix.samples) < 1000:
+                      raise RuntimeError(f'{target}: representative render failed at page {page_no + 1}')
+              doc.close()
+              return pages, len(data), hashlib.sha256(data).hexdigest()
+
+          records = []
+          stats: dict[str, dict[str, int]] = {}
+          seen_hashes: dict[str, str] = {}
+          skipped = []
+
+          for index, item in enumerate(entries, 1):
+              folder = item['folder']
+              filename = item['filename']
+              source = item['source']
+              minimum = item['min_pages']
+              optional = item['optional']
+              print(f'\n[{index}/{len(entries)}] {folder}/{filename}', flush=True)
+              try:
+                  url = source() if callable(source) else source
+                  print(f'  SOURCE {url}', flush=True)
+                  target = ROOT / folder / filename
+                  pages, size, digest = download_pdf(url, target, minimum)
+                  relative = str(target.relative_to(ROOT))
+                  if digest in seen_hashes:
+                      target.unlink(missing_ok=True)
+                      raise RuntimeError(f'Duplicate PDF content: {relative} == {seen_hashes[digest]}')
+                  seen_hashes[digest] = relative
+                  stat = stats.setdefault(folder, {'pdfs': 0, 'pages': 0, 'bytes': 0})
+                  stat['pdfs'] += 1
+                  stat['pages'] += pages
+                  stat['bytes'] += size
+                  records.append({
+                      'folder': folder,
+                      'filename': filename,
+                      'pages': pages,
+                      'bytes': size,
+                      'sha256': digest,
+                      'source': url,
+                  })
+                  print(f'  ACCEPTED {pages} pages {size/1024/1024:.1f} MiB sha256={digest[:16]}...', flush=True)
+              except Exception as exc:
+                  if optional:
+                      skipped.append({'folder': folder, 'filename': filename, 'error': f'{type(exc).__name__}: {exc}'})
+                      print(f'  OPTIONAL SKIP {type(exc).__name__}: {exc}', flush=True)
+                      continue
+                  raise
+
+          for folder, required_count in minimum_per_folder.items():
+              actual = stats.get(folder, {}).get('pdfs', 0)
+              if actual < required_count:
+                  raise RuntimeError(f'{folder}: only {actual} PDFs, below required {required_count}')
+
+          if ZIP_PATH.exists():
+              ZIP_PATH.unlink()
+          with zipfile.ZipFile(ZIP_PATH, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as archive:
+              for pdf in sorted(ROOT.rglob('*.pdf')):
+                  archive.write(pdf, pdf.relative_to(ROOT.parent))
+
+          with zipfile.ZipFile(ZIP_PATH, 'r') as archive:
+              names = archive.namelist()
+              expected_count = sum(v['pdfs'] for v in stats.values())
+              if len(names) != expected_count:
+                  raise RuntimeError(f'ZIP entry count {len(names)} != expected {expected_count}')
+              if any(not name.lower().endswith('.pdf') for name in names):
+                  raise RuntimeError('ZIP contains a non-PDF entry')
+              bad = archive.testzip()
+              if bad:
+                  raise RuntimeError(f'ZIP CRC failure: {bad}')
+
+          if ZIP_PATH.stat().st_size > 180 * 1024 * 1024:
+              raise RuntimeError(f'ZIP exceeds 180 MiB download target: {ZIP_PATH.stat().st_size/1024/1024:.1f} MiB')
+
+          summary = {
+              'batch': 14,
+              'sets': len(stats),
+              'pdfs': sum(v['pdfs'] for v in stats.values()),
+              'pages': sum(v['pages'] for v in stats.values()),
+              'source_bytes': sum(v['bytes'] for v in stats.values()),
+              'zip_bytes': ZIP_PATH.stat().st_size,
+              'zip_sha256': hashlib.sha256(ZIP_PATH.read_bytes()).hexdigest(),
+              'folders': stats,
+              'records': records,
+              'skipped': skipped,
+          }
+          SUMMARY_PATH.write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
+
+          print('\n=== BATCH 14 VERIFIED SUMMARY ===', flush=True)
+          for folder, values in stats.items():
+              print(f"{folder}: {values['pdfs']} PDFs, {values['pages']} pages, {values['bytes']/1024/1024:.1f} MiB", flush=True)
+          print(json.dumps({
+              'sets': summary['sets'],
+              'pdfs': summary['pdfs'],
+              'pages': summary['pages'],
+              'source_mib': round(summary['source_bytes']/1024/1024, 1),
+              'zip_mib': round(summary['zip_bytes']/1024/1024, 1),
+              'zip_sha256': summary['zip_sha256'],
+          }, ensure_ascii=False), flush=True)
+
+      - name: Upload verified package
+        uses: actions/upload-artifact@v4
+        with:
+          name: rurban-os-japan-batch14-commercial-operations
+          path: |
+            output/Rurban_OS_Japan_Batch14_4_Commercial_Operations_Project_Chains.zip
+            output/batch14_summary.json
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
