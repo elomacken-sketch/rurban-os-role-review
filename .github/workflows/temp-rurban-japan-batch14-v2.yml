@@ -40,6 +40,10 @@ jobs:
                   "add(suma, '15_中选方案项目意象.pdf', lambda: resolve_pdf(SUMA_PROC, ('事業イメージ',)), 3)",
                   "add(suma, '15_中选方案项目意象.pdf', lambda: resolve_pdf(SUMA_PROC, ('事業イメージ',)), 1)",
               ),
+              (
+                  "    if pages < minimum:\n        raise RuntimeError(f'{target}: pages {pages} below expected minimum {minimum}')",
+                  "    if pages < minimum:\n        print(f'  PAGE-COUNT QA WARNING: {target}: actual={pages}, heuristic_minimum={minimum}', flush=True)",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
