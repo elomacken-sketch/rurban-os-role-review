@@ -32,6 +32,14 @@ jobs:
                   "add(suma, '05_提供资料清单_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '提供資料一覧')), 2)",
                   "add(suma, '05_提供资料清单_最终修订版.pdf', lambda: resolve_pdf(SUMA_PROC, ('2019年7月5日改訂', '提供資料一覧')), 1)",
               ),
+              (
+                  "add(suma, '13_中选方案概要.pdf', lambda: resolve_pdf(SUMA_PROC, ('提案の概要',)), 3)",
+                  "add(suma, '13_中选方案概要.pdf', lambda: resolve_pdf(SUMA_PROC, ('提案の概要',)), 1)",
+              ),
+              (
+                  "add(suma, '15_中选方案项目意象.pdf', lambda: resolve_pdf(SUMA_PROC, ('事業イメージ',)), 3)",
+                  "add(suma, '15_中选方案项目意象.pdf', lambda: resolve_pdf(SUMA_PROC, ('事業イメージ',)), 1)",
+              ),
           ]
           for old, new in replacements:
               if old not in script:
